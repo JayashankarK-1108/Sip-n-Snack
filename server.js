@@ -76,8 +76,8 @@ app.post('/api/orders', async (req, res) => {
   }
 
   const now = new Date();
-  const date = now.toISOString().split('T')[0];
-  const time = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+  const date = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // YYYY-MM-DD in IST
+  const time = now.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true });
   const totalItems = items.reduce((sum, i) => sum + (i.qty || 0), 0);
   const itemsJson = JSON.stringify(items);
 
@@ -95,7 +95,7 @@ app.post('/api/orders', async (req, res) => {
 // Get orders by date (default: today) — admin only
 app.get('/api/orders', async (req, res) => {
   if (!isAdminRequest(req)) return res.status(403).json({ error: 'Admin only' });
-  const date = req.query.date || new Date().toISOString().split('T')[0];
+  const date = req.query.date || new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
   try {
     const { rows } = await pool.query(
       'SELECT * FROM orders WHERE date = $1 ORDER BY created_at DESC',
@@ -110,7 +110,7 @@ app.get('/api/orders', async (req, res) => {
 // Get summary by date (grouped by item) — admin only
 app.get('/api/summary', async (req, res) => {
   if (!isAdminRequest(req)) return res.status(403).json({ error: 'Admin only' });
-  const date = req.query.date || new Date().toISOString().split('T')[0];
+  const date = req.query.date || new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
   try {
     const { rows } = await pool.query('SELECT * FROM orders WHERE date = $1', [date]);
 
