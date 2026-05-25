@@ -538,13 +538,8 @@
     <div class="login-wrap">
       <div class="login-illustration">☕</div>
       <h2>Welcome back!</h2>
-      <p>Who's ready for a break? Select your name or type it below.</p>
+      <p>Who's ready for a break? Enter your name below.</p>
       <div class="login-card">
-        <div class="known-users" id="knownUsersWrap" style="display:none;">
-          <p>Quick select</p>
-          <div class="user-chips" id="userChips"></div>
-        </div>
-        <div class="divider" id="dividerLine">or enter your name</div>
         <div class="input-group">
           <input type="text" id="nameInput" placeholder="Your name..." maxlength="40" />
           <button class="btn-primary" onclick="login()">Let's Go →</button>
@@ -622,7 +617,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const saved = localStorage.getItem('sipsnack_user');
   const savedAdmin = localStorage.getItem('sipsnack_admin') === '1';
   if (saved) setUser(saved, false, savedAdmin);
-  else loadKnownUsers();
 
   buildMenu();
   setTodayDate();
@@ -634,26 +628,6 @@ function setTodayDate() {
 }
 
 // ── Auth ──────────────────────────────────────────────
-async function loadKnownUsers() {
-  try {
-    const res = await fetch(`${API}/api/users`);
-    const users = await res.json();
-    if (users.length > 0) {
-      document.getElementById('knownUsersWrap').style.display = 'block';
-      document.getElementById('dividerLine').textContent = 'or enter a new name';
-      const chips = document.getElementById('userChips');
-      chips.innerHTML = users.map(u =>
-        `<button class="chip" onclick="quickLogin('${u}')">${u}</button>`
-      ).join('');
-    }
-  } catch(e) {}
-}
-
-function quickLogin(name) {
-  document.getElementById('nameInput').value = name;
-  login();
-}
-
 async function login() {
   const name = document.getElementById('nameInput').value.trim();
   if (!name) return showToast('Please enter your name!', 'error');
@@ -696,7 +670,6 @@ function logout() {
   document.getElementById('navTabs').style.display = 'none';
   document.getElementById('panelLogin').style.display = '';
 
-  loadKnownUsers();
   document.getElementById('nameInput').value = '';
   resetMenu();
   showPanel('panelLogin');
