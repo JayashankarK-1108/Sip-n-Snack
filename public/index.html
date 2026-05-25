@@ -880,18 +880,34 @@ async function loadRecords() {
         </div>`
       : '';
 
-    const ordersHTML = orders.length > 0
+    // Group multiple orders from same user into one card
+    const grouped = {};
+    const groupOrder = [];
+    orders.forEach(o => {
+      if (!grouped[o.name]) {
+        grouped[o.name] = { name: o.name, time: o.time, items: [] };
+        groupOrder.push(o.name);
+      }
+      o.items.forEach(i => {
+        const existing = grouped[o.name].items.find(x => x.id === i.id);
+        if (existing) existing.qty += i.qty;
+        else grouped[o.name].items.push({ ...i });
+      });
+    });
+
+    const ordersHTML = groupOrder.length > 0
       ? `<div class="orders-list">
-          ${orders.map(o => {
-            const total = orderTotal(o.items);
+          ${groupOrder.map(name => {
+            const g = grouped[name];
+            const total = orderTotal(g.items);
             return `
             <div class="order-card">
               <div class="order-card-top">
-                <div class="order-name">👤 ${o.name}</div>
-                <div class="order-time">${o.time}</div>
+                <div class="order-name">👤 ${g.name}</div>
+                <div class="order-time">${g.time}</div>
               </div>
               <div class="order-items-grid">
-                ${o.items.map(i => `<span class="order-item-tag">${i.emoji} ${i.name} ×${i.qty}</span>`).join('')}
+                ${g.items.map(i => `<span class="order-item-tag">${i.emoji} ${i.name} ×${i.qty}</span>`).join('')}
               </div>
               <div class="order-total-row">Order total: <span>₹${total}</span></div>
             </div>`;
