@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sip & Snack ☕</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --cream: #fdf6ec;
+      --warm-white: #fffbf5;
+      --espresso: #2c1a0e;
+      --coffee: #6b3d2e;
+      --latte: #b8845a;
+      --caramel: #d4915a;
+      --gold: #e8b86d;
+      --sage: #7a9e7e;
+      --muted: #9e8070;
+      --card-bg: #fff8f0;
+      --shadow: rgba(44, 26, 14, 0.12);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--cream);
+      color: var(--espresso);
+      min-height: 100vh;
+      background-image:
+        radial-gradient(circle at 10% 20%, rgba(212, 145, 90, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 90% 80%, rgba(107, 61, 46, 0.06) 0%, transparent 50%);
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--espresso);
+      color: var(--cream);
+      padding: 1.2rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .header-brand .logo {
+      font-size: 2rem;
+      animation: steam 3s ease-in-out infinite;
+    }
+    @keyframes steam {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+    .header-brand h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.5rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+    .header-brand span { color: var(--gold); }
+    .header-user {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.875rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .header-user.visible { opacity: 1; }
+    .user-badge {
+      background: var(--caramel);
+      color: #fff;
+      padding: 0.35rem 0.85rem;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.8rem;
+    }
+    .btn-logout {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.3);
+      color: var(--cream);
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: all 0.2s;
+    }
+    .btn-logout:hover { background: rgba(255,255,255,0.1); }
+
+    /* ── Nav Tabs ── */
+    .nav-tabs {
+      display: flex;
+      background: var(--espresso);
+      padding: 0 2rem;
+      gap: 0;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: rgba(255,255,255,0.5);
+      padding: 0.75rem 1.25rem;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 500;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .tab-btn:hover { color: var(--gold); }
+    .tab-btn.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+    /* ── Main Layout ── */
+    main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+    /* ── Panels ── */
+    .panel { display: none; animation: fadeUp 0.4s ease; }
+    .panel.active { display: block; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Login Panel ── */
+    .login-wrap {
+      max-width: 440px;
+      margin: 3rem auto;
+      text-align: center;
+    }
+    .login-illustration { font-size: 5rem; margin-bottom: 1.5rem; }
+    .login-wrap h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    .login-wrap p { color: var(--muted); margin-bottom: 2rem; font-size: 0.95rem; }
+    .login-card {
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 2rem;
+      box-shadow: 0 8px 40px var(--shadow);
+      border: 1px solid rgba(212, 145, 90, 0.15);
+    }
+    .known-users {
+      margin-bottom: 1.5rem;
+    }
+    .known-users p { font-size: 0.8rem; color: var(--muted); margin-bottom: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; }
+    .user-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+    .chip {
+      background: #fff;
+      border: 1.5px solid rgba(107, 61, 46, 0.2);
+      color: var(--coffee);
+      padding: 0.4rem 0.9rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 500;
+    }
+    .chip:hover { background: var(--caramel); color: #fff; border-color: var(--caramel); }
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin: 1.25rem 0;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(107, 61, 46, 0.15);
+    }
+    .input-group {
+      display: flex;
+      gap: 0.75rem;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border: 1.5px solid rgba(107, 61, 46, 0.2);
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      background: #fff;
+      color: var(--espresso);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus { border-color: var(--caramel); }
+    .btn-primary {
+      background: var(--caramel);
+      color: #fff;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .btn-primary:hover { background: var(--coffee); transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+
+    /* ── Order Panel ── */
+    .order-header {
+      margin-bottom: 1.5rem;
+    }
+    .order-header h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.75rem;
+    }
+    .order-header p { color: var(--muted); font-size: 0.9rem; margin-top: 0.25rem; }
+    .greeting { color: var(--caramel); }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .menu-item {
+      background: var(--card-bg);
+      border: 2px solid transparent;
+      border-radius: 16px;
+      padding: 1.25rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 12px var(--shadow);
+      text-align: center;
+      position: relative;
+    }
+    .menu-item:hover { border-color: var(--gold); transform: translateY(-2px); }
+    .menu-item.selected {
+      border-color: var(--caramel);
+      background: #fff5eb;
+      box-shadow: 0 4px 20px rgba(212, 145, 90, 0.2);
+    }
+    .menu-emoji { font-size: 2.5rem; margin-bottom: 0.5rem; display: block; }
+    .menu-name {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--espresso);
+      line-height: 1.3;
+    }
+    .menu-price {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 0.25rem;
+    }
+    .qty-control {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+    .menu-item.selected .qty-control { display: flex; }
+    .qty-btn {
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      border: 1.5px solid var(--caramel);
+      background: #fff;
+      color: var(--caramel);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      line-height: 1;
+    }
+    .qty-btn:hover { background: var(--caramel); color: #fff; }
+    .qty-display {
+      font-weight: 700;
+      font-size: 0.95rem;
+      min-width: 20px;
+      text-align: center;
+      color: var(--espresso);
+    }
+    .check-badge {
+      position: absolute;
+      top: -6px; right: -6px;
+      width: 22px; height: 22px;
+      background: var(--sage);
+      border-radius: 50%;
+      color: #fff;
+      font-size: 0.7rem;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .menu-item.selected .check-badge { display: flex; }
+
+    .order-summary {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid rgba(212, 145, 90, 0.2);
+      box-shadow: 0 2px 12px var(--shadow);
+    }
+    .order-summary h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+    }
+    .summary-items { list-style: none; }
+    .summary-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.4rem 0;
+      border-bottom: 1px dashed rgba(107, 61, 46, 0.12);
+      font-size: 0.9rem;
+    }
+    .summary-item:last-child { border-bottom: none; }
+    .summary-empty { color: var(--muted); font-size: 0.9rem; font-style: italic; }
+    .qty-tag {
+      background: var(--caramel);
+      color: #fff;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .btn-submit {
+      width: 100%;
+      background: linear-gradient(135deg, var(--caramel), var(--coffee));
+      color: #fff;
+      border: none;
+      padding: 1rem;
+      border-radius: 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.02em;
+    }
+    .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(107, 61, 46, 0.3); }
+    .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* ── Records Panel ── */
+    .records-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .records-header h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.75rem;
+    }
+    .date-picker-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    input[type="date"] {
+      padding: 0.6rem 0.9rem;
+      border: 1.5px solid rgba(107, 61, 46, 0.2);
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.875rem;
+      background: #fff;
+      color: var(--espresso);
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="date"]:focus { border-color: var(--caramel); }
+
+    .summary-card {
+      background: var(--espresso);
+      color: var(--cream);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .summary-card h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      color: var(--gold);
+      margin-bottom: 1rem;
+    }
+    .summary-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    .summary-pill {
+      background: rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 0.5rem 0.9rem;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .summary-pill strong { color: var(--gold); }
+
+    .orders-list { display: flex; flex-direction: column; gap: 1rem; }
+    .order-card {
+      background: var(--card-bg);
+      border-radius: 14px;
+      padding: 1.25rem;
+      box-shadow: 0 2px 12px var(--shadow);
+      border-left: 4px solid var(--caramel);
+      animation: fadeUp 0.3s ease;
+    }
+    .order-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.75rem;
+    }
+    .order-name {
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--espresso);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .order-time {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .order-items-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .order-item-tag {
+      background: #fff;
+      border: 1px solid rgba(107, 61, 46, 0.15);
+      border-radius: 6px;
+      padding: 0.3rem 0.7rem;
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      color: var(--coffee);
+    }
+
+    .no-orders {
+      text-align: center;
+      padding: 3rem;
+      color: var(--muted);
+    }
+    .no-orders .icon { font-size: 3rem; margin-bottom: 1rem; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--espresso);
+      color: var(--cream);
+      padding: 0.75rem 1.5rem;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: 1000;
+      white-space: nowrap;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.success::before { content: '✅ '; }
+    .toast.error::before { content: '❌ '; }
+
+    /* ── Loading ── */
+    .loading {
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    @media (max-width: 600px) {
+      header { padding: 1rem; }
+      main { padding: 1.25rem 1rem; }
+      .menu-grid { grid-template-columns: repeat(2, 1fr); }
+      .records-header { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-brand">
+    <span class="logo">☕</span>
+    <h1>Sip <span>&</span> Snack</h1>
+  </div>
+  <div class="header-user" id="headerUser">
+    <span id="headerName" class="user-badge"></span>
+    <button class="btn-logout" onclick="logout()">Logout</button>
+  </div>
+</header>
+
+<nav class="nav-tabs" id="navTabs" style="display:none;">
+  <button class="tab-btn active" onclick="showTab('order')" id="tabOrder">🛒 Order</button>
+  <button class="tab-btn" onclick="showTab('records')" id="tabRecords">📋 Records</button>
+  <button class="tab-btn" onclick="showTab('myOrders')" id="tabMyOrders">👤 My Orders</button>
+</nav>
+
+<main>
+
+  <!-- LOGIN -->
+  <div class="panel active" id="panelLogin">
+    <div class="login-wrap">
+      <div class="login-illustration">☕</div>
+      <h2>Welcome back!</h2>
+      <p>Who's ready for a break? Select your name or type it below.</p>
+      <div class="login-card">
+        <div class="known-users" id="knownUsersWrap" style="display:none;">
+          <p>Quick select</p>
+          <div class="user-chips" id="userChips"></div>
+        </div>
+        <div class="divider" id="dividerLine">or enter your name</div>
+        <div class="input-group">
+          <input type="text" id="nameInput" placeholder="Your name..." maxlength="40" />
+          <button class="btn-primary" onclick="login()">Let's Go →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ORDER -->
+  <div class="panel" id="panelOrder">
+    <div class="order-header">
+      <h2>What'll it be, <span class="greeting" id="greetingName"></span>? ☕</h2>
+      <p>Pick your items and set quantities. Hit submit when done!</p>
+    </div>
+
+    <div class="menu-grid" id="menuGrid"></div>
+
+    <div class="order-summary">
+      <h3>🧾 Your Order</h3>
+      <ul class="summary-items" id="summaryItems">
+        <li class="summary-empty">Nothing selected yet...</li>
+      </ul>
+    </div>
+
+    <button class="btn-submit" id="btnSubmit" onclick="submitOrder()" disabled>
+      Submit Order ☕
+    </button>
+  </div>
+
+  <!-- RECORDS -->
+  <div class="panel" id="panelRecords">
+    <div class="records-header">
+      <h2>📋 Break Records</h2>
+      <div class="date-picker-wrap">
+        <input type="date" id="datePicker" onchange="loadRecords()" />
+      </div>
+    </div>
+    <div id="recordsContent"><div class="loading">Loading...</div></div>
+  </div>
+
+  <!-- MY ORDERS -->
+  <div class="panel" id="panelMyOrders">
+    <div class="order-header">
+      <h2>👤 My Order History</h2>
+      <p>All your break orders in one place.</p>
+    </div>
+    <div id="myOrdersContent"><div class="loading">Loading...</div></div>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────
+let currentUser = null;
+const API = '';
+
+const MENU = [
+  { id: 'tea',           name: 'Tea',               emoji: '🍵', price: '₹5' },
+  { id: 'coffee',        name: 'Coffee',             emoji: '☕', price: '₹8' },
+  { id: 'lemon_tea',     name: 'Lemon Tea',          emoji: '🍋', price: '₹8' },
+  { id: 'honey_tea',     name: 'Lemon Tea\nwith Honey', emoji: '🍯', price: '₹10' },
+  { id: 'buttermilk',    name: 'Buttermilk',         emoji: '🥛', price: '₹10' },
+  { id: 'biscuits',      name: 'Biscuits',           emoji: '🍪', price: '₹5' },
+  { id: 'peanuts',       name: 'Peanuts',            emoji: '🥜', price: '₹10' },
+  { id: 'snacks',        name: 'Snacks',             emoji: '🧆', price: '₹15' },
+];
+
+let selected = {}; // { id: qty }
+
+// ── Init ──────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('sipsnack_user');
+  if (saved) setUser(saved, false);
+  else loadKnownUsers();
+
+  buildMenu();
+  setTodayDate();
+});
+
+function setTodayDate() {
+  const dp = document.getElementById('datePicker');
+  dp.value = new Date().toISOString().split('T')[0];
+}
+
+// ── Auth ──────────────────────────────────────────────
+async function loadKnownUsers() {
+  try {
+    const res = await fetch(`${API}/api/users`);
+    const users = await res.json();
+    if (users.length > 0) {
+      document.getElementById('knownUsersWrap').style.display = 'block';
+      document.getElementById('dividerLine').textContent = 'or enter a new name';
+      const chips = document.getElementById('userChips');
+      chips.innerHTML = users.map(u =>
+        `<button class="chip" onclick="quickLogin('${u}')">${u}</button>`
+      ).join('');
+    }
+  } catch(e) {}
+}
+
+function quickLogin(name) {
+  document.getElementById('nameInput').value = name;
+  login();
+}
+
+async function login() {
+  const name = document.getElementById('nameInput').value.trim();
+  if (!name) return showToast('Please enter your name!', 'error');
+  try {
+    await fetch(`${API}/api/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name })
+    });
+    localStorage.setItem('sipsnack_user', name);
+    setUser(name, true);
+  } catch(e) {
+    showToast('Connection error, please try again.', 'error');
+  }
+}
+
+function setUser(name, animated) {
+  currentUser = name;
+  document.getElementById('headerName').textContent = name;
+  document.getElementById('headerUser').classList.add('visible');
+  document.getElementById('navTabs').style.display = 'flex';
+  document.getElementById('greetingName').textContent = name;
+
+  showPanel('panelOrder');
+  document.getElementById('panelLogin').style.display = 'none';
+  showTab('order');
+}
+
+function logout() {
+  localStorage.removeItem('sipsnack_user');
+  currentUser = null;
+  selected = {};
+  document.getElementById('headerUser').classList.remove('visible');
+  document.getElementById('navTabs').style.display = 'none';
+  document.getElementById('panelLogin').style.display = '';
+
+  loadKnownUsers();
+  document.getElementById('nameInput').value = '';
+  resetMenu();
+  showPanel('panelLogin');
+}
+
+// ── Navigation ──────────────────────────────────────────
+function showTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  const panels = ['panelOrder', 'panelRecords', 'panelMyOrders'];
+  panels.forEach(p => {
+    const el = document.getElementById(p);
+    if (el) el.classList.remove('active');
+  });
+
+  if (tab === 'order') {
+    document.getElementById('tabOrder').classList.add('active');
+    showPanel('panelOrder');
+  } else if (tab === 'records') {
+    document.getElementById('tabRecords').classList.add('active');
+    showPanel('panelRecords');
+    loadRecords();
+  } else if (tab === 'myOrders') {
+    document.getElementById('tabMyOrders').classList.add('active');
+    showPanel('panelMyOrders');
+    loadMyOrders();
+  }
+}
+
+function showPanel(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+}
+
+// ── Menu ──────────────────────────────────────────────
+function buildMenu() {
+  const grid = document.getElementById('menuGrid');
+  grid.innerHTML = MENU.map(item => `
+    <div class="menu-item" id="mi-${item.id}" onclick="toggleItem('${item.id}')">
+      <div class="check-badge">✓</div>
+      <span class="menu-emoji">${item.emoji}</span>
+      <div class="menu-name">${item.name}</div>
+      <div class="menu-price">${item.price}</div>
+      <div class="qty-control" onclick="event.stopPropagation()">
+        <button class="qty-btn" onclick="changeQty('${item.id}', -1)">−</button>
+        <span class="qty-display" id="qty-${item.id}">1</span>
+        <button class="qty-btn" onclick="changeQty('${item.id}', 1)">+</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleItem(id) {
+  if (selected[id]) {
+    delete selected[id];
+    document.getElementById(`mi-${id}`).classList.remove('selected');
+    document.getElementById(`qty-${id}`).textContent = '1';
+  } else {
+    selected[id] = 1;
+    document.getElementById(`mi-${id}`).classList.add('selected');
+  }
+  updateSummary();
+}
+
+function changeQty(id, delta) {
+  if (!selected[id]) return;
+  selected[id] = Math.max(1, (selected[id] || 1) + delta);
+  document.getElementById(`qty-${id}`).textContent = selected[id];
+  updateSummary();
+}
+
+function updateSummary() {
+  const ul = document.getElementById('summaryItems');
+  const keys = Object.keys(selected);
+  const btn = document.getElementById('btnSubmit');
+
+  if (keys.length === 0) {
+    ul.innerHTML = '<li class="summary-empty">Nothing selected yet...</li>';
+    btn.disabled = true;
+    return;
+  }
+
+  btn.disabled = false;
+  ul.innerHTML = keys.map(id => {
+    const item = MENU.find(m => m.id === id);
+    return `<li class="summary-item">
+      <span>${item.emoji} ${item.name.replace('\n', ' ')}</span>
+      <span class="qty-tag">×${selected[id]}</span>
+    </li>`;
+  }).join('');
+}
+
+function resetMenu() {
+  selected = {};
+  MENU.forEach(item => {
+    const el = document.getElementById(`mi-${item.id}`);
+    if (el) el.classList.remove('selected');
+    const qty = document.getElementById(`qty-${item.id}`);
+    if (qty) qty.textContent = '1';
+  });
+  updateSummary();
+}
+
+// ── Submit Order ──────────────────────────────────────────
+async function submitOrder() {
+  if (!currentUser) return;
+  const keys = Object.keys(selected);
+  if (keys.length === 0) return;
+
+  const items = keys.map(id => {
+    const item = MENU.find(m => m.id === id);
+    return { id, name: item.name.replace('\n', ' '), emoji: item.emoji, qty: selected[id] };
+  });
+
+  const btn = document.getElementById('btnSubmit');
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+
+  try {
+    const res = await fetch(`${API}/api/orders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: currentUser, items })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('Order submitted! Enjoy your break 🎉', 'success');
+      resetMenu();
+    } else {
+      showToast('Something went wrong.', 'error');
+    }
+  } catch(e) {
+    showToast('Connection error.', 'error');
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Submit Order ☕';
+}
+
+// ── Records ──────────────────────────────────────────
+async function loadRecords() {
+  const date = document.getElementById('datePicker').value;
+  const content = document.getElementById('recordsContent');
+  content.innerHTML = '<div class="loading">Loading...</div>';
+
+  try {
+    const [summaryRes, ordersRes] = await Promise.all([
+      fetch(`${API}/api/summary?date=${date}`),
+      fetch(`${API}/api/orders?date=${date}`)
+    ]);
+    const summary = await summaryRes.json();
+    const orders = await ordersRes.json();
+
+    const dateLabel = new Date(date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+    const summaryKeys = Object.keys(summary.summary || {});
+    const summaryHTML = summaryKeys.length > 0
+      ? `<div class="summary-card">
+          <h3>📊 Day Summary — ${dateLabel}</h3>
+          <div class="summary-grid">
+            ${summaryKeys.map(k => {
+              const item = MENU.find(m => m.name.replace('\n',' ') === k || m.id === k) || {};
+              return `<div class="summary-pill">${item.emoji || '•'} ${k} <strong>×${summary.summary[k]}</strong></div>`;
+            }).join('')}
+          </div>
+          <div style="margin-top:0.75rem;font-size:0.8rem;opacity:0.6;">${summary.totalOrders} order${summary.totalOrders !== 1 ? 's' : ''} placed</div>
+        </div>`
+      : '';
+
+    const ordersHTML = orders.length > 0
+      ? `<div class="orders-list">
+          ${orders.map(o => `
+            <div class="order-card">
+              <div class="order-card-top">
+                <div class="order-name">👤 ${o.name}</div>
+                <div class="order-time">${o.time}</div>
+              </div>
+              <div class="order-items-grid">
+                ${o.items.map(i => `<span class="order-item-tag">${i.emoji} ${i.name} ×${i.qty}</span>`).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>`
+      : `<div class="no-orders">
+          <div class="icon">🍃</div>
+          <p>No orders found for this date.</p>
+        </div>`;
+
+    content.innerHTML = summaryHTML + ordersHTML;
+
+  } catch(e) {
+    content.innerHTML = '<div class="no-orders"><div class="icon">⚠️</div><p>Could not load records.</p></div>';
+  }
+}
+
+// ── My Orders ──────────────────────────────────────────
+async function loadMyOrders() {
+  if (!currentUser) return;
+  const content = document.getElementById('myOrdersContent');
+  content.innerHTML = '<div class="loading">Loading...</div>';
+
+  try {
+    const res = await fetch(`${API}/api/orders/user/${encodeURIComponent(currentUser)}`);
+    const orders = await res.json();
+
+    if (orders.length === 0) {
+      content.innerHTML = `<div class="no-orders"><div class="icon">☕</div><p>You haven't ordered anything yet!</p></div>`;
+      return;
+    }
+
+    content.innerHTML = `<div class="orders-list">
+      ${orders.map(o => `
+        <div class="order-card">
+          <div class="order-card-top">
+            <div class="order-name">📅 ${o.date}</div>
+            <div class="order-time">${o.time}</div>
+          </div>
+          <div class="order-items-grid">
+            ${o.items.map(i => `<span class="order-item-tag">${i.emoji} ${i.name} ×${i.qty}</span>`).join('')}
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+
+  } catch(e) {
+    content.innerHTML = '<div class="no-orders"><div class="icon">⚠️</div><p>Could not load your orders.</p></div>';
+  }
+}
+
+// ── Toast ──────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type}`;
+  void t.offsetWidth;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// Enter key on login
+document.getElementById('nameInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') login();
+});
+</script>
+</body>
+</html>

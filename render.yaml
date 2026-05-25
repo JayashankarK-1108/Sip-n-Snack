@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: sip-n-snack
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DB_PATH
+        value: /var/data/db
+    disk:
+      name: sipnsnack-db
+      mountPath: /var/data
+      sizeGB: 1
