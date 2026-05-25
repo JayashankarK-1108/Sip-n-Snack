@@ -1,0 +1,17 @@
+{
+  "name": "Sip & Snack",
+  "short_name": "Sip & Snack",
+  "description": "Office tea & coffee break expense tracker",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fdf6ec",
+  "theme_color": "#2c1a0e",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
