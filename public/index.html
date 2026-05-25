@@ -468,6 +468,32 @@
       color: var(--coffee);
     }
 
+    .order-total-row {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      margin-top: 0.75rem;
+      padding-top: 0.6rem;
+      border-top: 1px solid rgba(107, 61, 46, 0.1);
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--coffee);
+    }
+    .order-total-row span { color: var(--caramel); margin-left: 0.4rem; }
+
+    .grand-total-card {
+      background: var(--espresso);
+      color: var(--cream);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.9rem;
+    }
+    .grand-total-card strong { color: var(--gold); font-size: 1.1rem; }
+
     .no-orders {
       text-align: center;
       padding: 3rem;
@@ -611,6 +637,14 @@ const MENU = [
 ];
 
 let selected = {}; // { id: qty }
+
+function orderTotal(items) {
+  return items.reduce((sum, i) => {
+    const menu = MENU.find(m => m.id === i.id);
+    const price = menu ? parseInt(menu.price.replace('₹', '')) : 0;
+    return sum + price * i.qty;
+  }, 0);
+}
 
 // ── Init ──────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -882,19 +916,29 @@ async function loadMyOrders() {
       return;
     }
 
-    content.innerHTML = `<div class="orders-list">
-      ${orders.map(o => `
-        <div class="order-card">
-          <div class="order-card-top">
-            <div class="order-name">📅 ${o.date}</div>
-            <div class="order-time">${o.time}</div>
-          </div>
-          <div class="order-items-grid">
-            ${o.items.map(i => `<span class="order-item-tag">${i.emoji} ${i.name} ×${i.qty}</span>`).join('')}
-          </div>
-        </div>
-      `).join('')}
-    </div>`;
+    const grandTotal = orders.reduce((sum, o) => sum + orderTotal(o.items), 0);
+
+    content.innerHTML = `
+      <div class="grand-total-card">
+        <span>Total spent (last ${orders.length} order${orders.length !== 1 ? 's' : ''})</span>
+        <strong>₹${grandTotal}</strong>
+      </div>
+      <div class="orders-list">
+        ${orders.map(o => {
+          const total = orderTotal(o.items);
+          return `
+            <div class="order-card">
+              <div class="order-card-top">
+                <div class="order-name">📅 ${o.date}</div>
+                <div class="order-time">${o.time}</div>
+              </div>
+              <div class="order-items-grid">
+                ${o.items.map(i => `<span class="order-item-tag">${i.emoji} ${i.name} ×${i.qty}</span>`).join('')}
+              </div>
+              <div class="order-total-row">Order total: <span>₹${total}</span></div>
+            </div>`;
+        }).join('')}
+      </div>`;
 
   } catch(e) {
     content.innerHTML = '<div class="no-orders"><div class="icon">⚠️</div><p>Could not load your orders.</p></div>';
