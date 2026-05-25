@@ -601,6 +601,7 @@
 <script>
 // ── State ──────────────────────────────────────────────
 let currentUser = null;
+let isAdmin = false;
 const API = '';
 
 const MENU = [
@@ -619,7 +620,8 @@ let selected = {}; // { id: qty }
 // ── Init ──────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   const saved = localStorage.getItem('sipsnack_user');
-  if (saved) setUser(saved, false);
+  const savedAdmin = localStorage.getItem('sipsnack_admin') === '1';
+  if (saved) setUser(saved, false, savedAdmin);
   else loadKnownUsers();
 
   buildMenu();
@@ -656,24 +658,28 @@ async function login() {
   const name = document.getElementById('nameInput').value.trim();
   if (!name) return showToast('Please enter your name!', 'error');
   try {
-    await fetch(`${API}/api/login`, {
+    const res = await fetch(`${API}/api/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name })
     });
-    localStorage.setItem('sipsnack_user', name);
-    setUser(name, true);
+    const data = await res.json();
+    localStorage.setItem('sipsnack_user', data.name);
+    localStorage.setItem('sipsnack_admin', data.isAdmin ? '1' : '0');
+    setUser(data.name, true, data.isAdmin);
   } catch(e) {
     showToast('Connection error, please try again.', 'error');
   }
 }
 
-function setUser(name, animated) {
+function setUser(name, animated, adminFlag) {
   currentUser = name;
+  isAdmin = adminFlag || false;
   document.getElementById('headerName').textContent = name;
   document.getElementById('headerUser').classList.add('visible');
   document.getElementById('navTabs').style.display = 'flex';
   document.getElementById('greetingName').textContent = name;
+  document.getElementById('tabRecords').style.display = isAdmin ? '' : 'none';
 
   showPanel('panelOrder');
   document.getElementById('panelLogin').style.display = 'none';
@@ -682,7 +688,9 @@ function setUser(name, animated) {
 
 function logout() {
   localStorage.removeItem('sipsnack_user');
+  localStorage.removeItem('sipsnack_admin');
   currentUser = null;
+  isAdmin = false;
   selected = {};
   document.getElementById('headerUser').classList.remove('visible');
   document.getElementById('navTabs').style.display = 'none';
@@ -707,6 +715,7 @@ function showTab(tab) {
     document.getElementById('tabOrder').classList.add('active');
     showPanel('panelOrder');
   } else if (tab === 'records') {
+    if (!isAdmin) return;
     document.getElementById('tabRecords').classList.add('active');
     showPanel('panelRecords');
     loadRecords();
@@ -835,9 +844,10 @@ async function loadRecords() {
   content.innerHTML = '<div class="loading">Loading...</div>';
 
   try {
+    const adminHeaders = { 'x-user-name': currentUser };
     const [summaryRes, ordersRes] = await Promise.all([
-      fetch(`${API}/api/summary?date=${date}`),
-      fetch(`${API}/api/orders?date=${date}`)
+      fetch(`${API}/api/summary?date=${date}`, { headers: adminHeaders }),
+      fetch(`${API}/api/orders?date=${date}`, { headers: adminHeaders })
     ]);
     const summary = await summaryRes.json();
     const orders = await ordersRes.json();

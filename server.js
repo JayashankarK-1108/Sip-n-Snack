@@ -6,6 +6,11 @@ const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const ADMIN_NAME = (process.env.ADMIN_NAME || 'Admin').toLowerCase();
+
+function isAdminRequest(req) {
+  return (req.headers['x-user-name'] || '').toLowerCase() === ADMIN_NAME;
+}
 
 // Ensure db directory exists (Render persistent disk or local)
 const DB_DIR = process.env.DB_PATH || path.join(__dirname, 'db');
@@ -51,7 +56,7 @@ app.post('/api/login', (req, res) => {
   if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
   const clean = name.trim();
   db.prepare('INSERT OR IGNORE INTO users (name) VALUES (?)').run(clean);
-  res.json({ success: true, name: clean });
+  res.json({ success: true, name: clean, isAdmin: clean.toLowerCase() === ADMIN_NAME });
 });
 
 // Submit an order
@@ -75,8 +80,9 @@ app.post('/api/orders', (req, res) => {
   res.json({ success: true, id: result.lastInsertRowid });
 });
 
-// Get orders by date (default: today)
+// Get orders by date (default: today) — admin only
 app.get('/api/orders', (req, res) => {
+  if (!isAdminRequest(req)) return res.status(403).json({ error: 'Admin only' });
   const date = req.query.date || new Date().toISOString().split('T')[0];
   const orders = db.prepare(`
     SELECT * FROM orders WHERE date = ? ORDER BY created_at DESC
@@ -89,8 +95,9 @@ app.get('/api/orders', (req, res) => {
   res.json(parsed);
 });
 
-// Get summary by date (grouped by item)
+// Get summary by date (grouped by item) — admin only
 app.get('/api/summary', (req, res) => {
+  if (!isAdminRequest(req)) return res.status(403).json({ error: 'Admin only' });
   const date = req.query.date || new Date().toISOString().split('T')[0];
   const orders = db.prepare('SELECT * FROM orders WHERE date = ?').all(date);
 
@@ -111,8 +118,9 @@ app.get('/api/summary', (req, res) => {
   res.json({ date, summary, userBreakdown, totalOrders: orders.length });
 });
 
-// Get all available dates that have orders
+// Get all available dates that have orders — admin only
 app.get('/api/dates', (req, res) => {
+  if (!isAdminRequest(req)) return res.status(403).json({ error: 'Admin only' });
   const dates = db.prepare(`
     SELECT DISTINCT date FROM orders ORDER BY date DESC LIMIT 60
   `).all();
