@@ -861,6 +861,8 @@ async function loadRecords() {
 
     const dateLabel = new Date(date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
+    const dayTotal = orders.reduce((sum, o) => sum + orderTotal(o.items), 0);
+
     const summaryKeys = Object.keys(summary.summary || {});
     const summaryHTML = summaryKeys.length > 0
       ? `<div class="summary-card">
@@ -871,13 +873,18 @@ async function loadRecords() {
               return `<div class="summary-pill">${item.emoji || '•'} ${k} <strong>×${summary.summary[k]}</strong></div>`;
             }).join('')}
           </div>
-          <div style="margin-top:0.75rem;font-size:0.8rem;opacity:0.6;">${summary.totalOrders} order${summary.totalOrders !== 1 ? 's' : ''} placed</div>
+          <div style="margin-top:0.75rem;font-size:0.8rem;opacity:0.6;display:flex;justify-content:space-between;align-items:center;">
+            <span>${summary.totalOrders} order${summary.totalOrders !== 1 ? 's' : ''} placed</span>
+            <span style="font-size:0.95rem;font-weight:700;opacity:1;color:var(--gold);">Day Total: ₹${dayTotal}</span>
+          </div>
         </div>`
       : '';
 
     const ordersHTML = orders.length > 0
       ? `<div class="orders-list">
-          ${orders.map(o => `
+          ${orders.map(o => {
+            const total = orderTotal(o.items);
+            return `
             <div class="order-card">
               <div class="order-card-top">
                 <div class="order-name">👤 ${o.name}</div>
@@ -886,8 +893,9 @@ async function loadRecords() {
               <div class="order-items-grid">
                 ${o.items.map(i => `<span class="order-item-tag">${i.emoji} ${i.name} ×${i.qty}</span>`).join('')}
               </div>
-            </div>
-          `).join('')}
+              <div class="order-total-row">Order total: <span>₹${total}</span></div>
+            </div>`;
+          }).join('')}
         </div>`
       : `<div class="no-orders">
           <div class="icon">🍃</div>
