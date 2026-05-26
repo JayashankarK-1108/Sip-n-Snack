@@ -669,7 +669,13 @@ const MENU = [
   { id: 'buttermilk',    name: 'Buttermilk',         emoji: '🥛', price: '₹20', category: 'Beverages' },
   { id: 'biscuits',      name: 'Biscuits',           emoji: '🍪', price: '₹5',  category: 'Snacks' },
   { id: 'peanuts',       name: 'Peanuts',            emoji: '🥜', price: '₹10', category: 'Snacks' },
-  { id: 'snacks',        name: 'Snacks',             emoji: '🧆', price: '₹15', category: 'Snacks' },
+  { id: 'samosa',        name: 'Samosa',             emoji: '🥐', price: '₹15', category: 'Snacks' },
+  { id: 'egg_puffs',     name: 'Egg Puffs',          emoji: '🥚', price: '₹15', category: 'Snacks' },
+  { id: 'paneer_puffs',  name: 'Paneer Puffs',       emoji: '🧀', price: '₹15', category: 'Snacks' },
+  { id: 'mc_coffee',     name: 'Coffee',             emoji: '☕', price: '₹15', category: 'Madras Coffee' },
+  { id: 'mc_tea',        name: 'Tea',                emoji: '🍵', price: '₹15', category: 'Madras Coffee' },
+  { id: 'mc_buttermilk', name: 'Buttermilk',         emoji: '🥛', price: '₹20', category: 'Madras Coffee' },
+  { id: 'mc_samosa',     name: 'Samosa',             emoji: '🥐', price: '₹15', category: 'Madras Coffee' },
 ];
 
 let selected = {}; // { id: qty }
@@ -796,7 +802,7 @@ function buildMenu() {
   container.innerHTML = categories.map(cat => {
     const items = MENU.filter(m => m.category === cat);
     return `
-      <div class="menu-section-label">${cat === 'Beverages' ? '☕ ' : '🍿 '}${cat}</div>
+      <div class="menu-section-label">${cat === 'Beverages' ? '☕' : cat === 'Snacks' ? '🍿' : '☕'} ${cat}</div>
       <div class="menu-grid">${items.map(itemCard).join('')}</div>`;
   }).join('');
 }
