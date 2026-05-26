@@ -238,8 +238,19 @@
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
       gap: 1rem;
-      margin-bottom: 2rem;
+      margin-bottom: 1rem;
     }
+    .menu-section-label {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--coffee);
+      margin: 1.25rem 0 0.5rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 2px solid rgba(107, 61, 46, 0.15);
+      letter-spacing: 0.01em;
+    }
+    .menu-section-label:first-child { margin-top: 0; }
     .menu-item {
       background: var(--card-bg);
       border: 2px solid transparent;
@@ -606,7 +617,7 @@
       <p>Pick your items and set quantities. Hit submit when done!</p>
     </div>
 
-    <div class="menu-grid" id="menuGrid"></div>
+    <div id="menuGrid"></div>
 
     <div class="order-summary">
       <h3>🧾 Your Order</h3>
@@ -651,14 +662,14 @@ let isAdmin = false;
 const API = '';
 
 const MENU = [
-  { id: 'tea',           name: 'Tea',               emoji: '🍵', price: '₹15' },
-  { id: 'coffee',        name: 'Coffee',             emoji: '☕', price: '₹15' },
-  { id: 'lemon_tea',     name: 'Lemon Tea',          emoji: '🍋', price: '₹17' },
-  { id: 'honey_tea',     name: 'Lemon Tea\nwith Honey', emoji: '🍯', price: '₹18' },
-  { id: 'buttermilk',    name: 'Buttermilk',         emoji: '🥛', price: '₹20' },
-  { id: 'biscuits',      name: 'Biscuits',           emoji: '🍪', price: '₹5' },
-  { id: 'peanuts',       name: 'Peanuts',            emoji: '🥜', price: '₹10' },
-  { id: 'snacks',        name: 'Snacks',             emoji: '🧆', price: '₹15' },
+  { id: 'tea',           name: 'Tea',               emoji: '🍵', price: '₹15', category: 'Beverages' },
+  { id: 'coffee',        name: 'Coffee',             emoji: '☕', price: '₹15', category: 'Beverages' },
+  { id: 'lemon_tea',     name: 'Lemon Tea',          emoji: '🍋', price: '₹17', category: 'Beverages' },
+  { id: 'honey_tea',     name: 'Lemon Tea\nwith Honey', emoji: '🍯', price: '₹18', category: 'Beverages' },
+  { id: 'buttermilk',    name: 'Buttermilk',         emoji: '🥛', price: '₹20', category: 'Beverages' },
+  { id: 'biscuits',      name: 'Biscuits',           emoji: '🍪', price: '₹5',  category: 'Snacks' },
+  { id: 'peanuts',       name: 'Peanuts',            emoji: '🥜', price: '₹10', category: 'Snacks' },
+  { id: 'snacks',        name: 'Snacks',             emoji: '🧆', price: '₹15', category: 'Snacks' },
 ];
 
 let selected = {}; // { id: qty }
@@ -766,8 +777,10 @@ function showPanel(id) {
 
 // ── Menu ──────────────────────────────────────────────
 function buildMenu() {
-  const grid = document.getElementById('menuGrid');
-  grid.innerHTML = MENU.map(item => `
+  const container = document.getElementById('menuGrid');
+  const categories = [...new Set(MENU.map(m => m.category))];
+
+  const itemCard = item => `
     <div class="menu-item" id="mi-${item.id}" onclick="toggleItem('${item.id}')">
       <div class="check-badge">✓</div>
       <span class="menu-emoji">${item.emoji}</span>
@@ -778,8 +791,14 @@ function buildMenu() {
         <span class="qty-display" id="qty-${item.id}">1</span>
         <button class="qty-btn" onclick="changeQty('${item.id}', 1)">+</button>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+
+  container.innerHTML = categories.map(cat => {
+    const items = MENU.filter(m => m.category === cat);
+    return `
+      <div class="menu-section-label">${cat === 'Beverages' ? '☕ ' : '🍿 '}${cat}</div>
+      <div class="menu-grid">${items.map(itemCard).join('')}</div>`;
+  }).join('');
 }
 
 function toggleItem(id) {
