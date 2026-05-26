@@ -494,6 +494,15 @@
     }
     .grand-total-card strong { color: var(--gold); font-size: 1.1rem; }
 
+    .sessions-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+    .session-col {
+      min-width: 0;
+    }
     .session-header {
       display: flex;
       align-items: center;
@@ -502,11 +511,13 @@
       font-size: 1.1rem;
       font-weight: 700;
       color: var(--espresso);
-      margin: 1.75rem 0 0.85rem;
+      margin: 0 0 0.85rem;
       padding-bottom: 0.5rem;
       border-bottom: 2px solid rgba(107, 61, 46, 0.12);
     }
-    .session-header:first-child { margin-top: 0; }
+    @media (max-width: 650px) {
+      .sessions-grid { grid-template-columns: 1fr; }
+    }
 
     .no-orders {
       text-align: center;
@@ -918,15 +929,17 @@ function buildSessionHTML(sessionOrders, icon, label) {
   }).join('');
 
   return `
-    <div class="session-header">${icon} ${label}</div>
-    <div class="summary-card">
-      <div class="summary-grid">${summaryPills}</div>
-      <div style="margin-top:0.75rem;font-size:0.8rem;opacity:0.6;display:flex;justify-content:space-between;align-items:center;">
-        <span>${sessionOrders.length} order${sessionOrders.length !== 1 ? 's' : ''} placed</span>
-        <span style="font-size:0.95rem;font-weight:700;opacity:1;color:var(--gold);">Total: ₹${sessionTotal}</span>
+    <div class="session-col">
+      <div class="session-header">${icon} ${label}</div>
+      <div class="summary-card">
+        <div class="summary-grid">${summaryPills}</div>
+        <div style="margin-top:0.75rem;font-size:0.8rem;opacity:0.6;display:flex;justify-content:space-between;align-items:center;">
+          <span>${sessionOrders.length} order${sessionOrders.length !== 1 ? 's' : ''} placed</span>
+          <span style="font-size:0.95rem;font-weight:700;opacity:1;color:var(--gold);">Total: ₹${sessionTotal}</span>
+        </div>
       </div>
-    </div>
-    <div class="orders-list">${orderCards}</div>`;
+      <div class="orders-list">${orderCards}</div>
+    </div>`;
 }
 
 async function loadRecords() {
@@ -948,10 +961,15 @@ async function loadRecords() {
     const morningOrders = orders.filter(o => parseHour(o.time) < 16);
     const eveningOrders = orders.filter(o => parseHour(o.time) >= 16);
 
+    const morningHTML = buildSessionHTML(morningOrders, '🌅', 'Morning Break');
+    const eveningHTML = buildSessionHTML(eveningOrders, '🌆', 'Evening Break');
+
     content.innerHTML = `
       <p style="font-size:0.8rem;color:var(--muted);margin-bottom:1rem;">${dateLabel}</p>
-      ${buildSessionHTML(morningOrders, '🌅', 'Morning Break')}
-      ${buildSessionHTML(eveningOrders, '🌆', 'Evening Break')}`;
+      <div class="sessions-grid">
+        ${morningHTML || '<div class="session-col"></div>'}
+        ${eveningHTML || '<div class="session-col"></div>'}
+      </div>`;
 
   } catch(e) {
     content.innerHTML = '<div class="no-orders"><div class="icon">⚠️</div><p>Could not load records.</p></div>';
