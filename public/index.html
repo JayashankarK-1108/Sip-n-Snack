@@ -494,6 +494,20 @@
     }
     .grand-total-card strong { color: var(--gold); font-size: 1.1rem; }
 
+    .session-header {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--espresso);
+      margin: 1.75rem 0 0.85rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid rgba(107, 61, 46, 0.12);
+    }
+    .session-header:first-child { margin-top: 0; }
+
     .no-orders {
       text-align: center;
       padding: 3rem;
@@ -845,6 +859,76 @@ async function submitOrder() {
 }
 
 // ── Records ──────────────────────────────────────────
+function parseHour(timeStr) {
+  // timeStr like "08:30 am" or "04:15 pm"
+  const [timePart, period] = timeStr.toLowerCase().split(' ');
+  let [h] = timePart.split(':').map(Number);
+  if (period === 'pm' && h !== 12) h += 12;
+  if (period === 'am' && h === 12) h = 0;
+  return h;
+}
+
+function buildSessionHTML(sessionOrders, icon, label) {
+  if (sessionOrders.length === 0) return '';
+
+  // Compute item summary for this session
+  const itemSummary = {};
+  sessionOrders.forEach(o => {
+    o.items.forEach(i => {
+      itemSummary[i.name] = (itemSummary[i.name] || { emoji: i.emoji, qty: 0 });
+      itemSummary[i.name].qty += i.qty;
+    });
+  });
+
+  // Group by user
+  const grouped = {};
+  const groupOrder = [];
+  sessionOrders.forEach(o => {
+    if (!grouped[o.name]) {
+      grouped[o.name] = { name: o.name, time: o.time, items: [] };
+      groupOrder.push(o.name);
+    }
+    o.items.forEach(i => {
+      const ex = grouped[o.name].items.find(x => x.id === i.id);
+      if (ex) ex.qty += i.qty;
+      else grouped[o.name].items.push({ ...i });
+    });
+  });
+
+  const sessionTotal = sessionOrders.reduce((sum, o) => sum + orderTotal(o.items), 0);
+
+  const summaryPills = Object.entries(itemSummary)
+    .map(([name, v]) => `<div class="summary-pill">${v.emoji} ${name} <strong>×${v.qty}</strong></div>`)
+    .join('');
+
+  const orderCards = groupOrder.map(name => {
+    const g = grouped[name];
+    const total = orderTotal(g.items);
+    return `
+      <div class="order-card">
+        <div class="order-card-top">
+          <div class="order-name">👤 ${g.name}</div>
+          <div class="order-time">${g.time}</div>
+        </div>
+        <div class="order-items-grid">
+          ${g.items.map(i => `<span class="order-item-tag">${i.emoji} ${i.name} ×${i.qty}</span>`).join('')}
+        </div>
+        <div class="order-total-row">Order total: <span>₹${total}</span></div>
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="session-header">${icon} ${label}</div>
+    <div class="summary-card">
+      <div class="summary-grid">${summaryPills}</div>
+      <div style="margin-top:0.75rem;font-size:0.8rem;opacity:0.6;display:flex;justify-content:space-between;align-items:center;">
+        <span>${sessionOrders.length} order${sessionOrders.length !== 1 ? 's' : ''} placed</span>
+        <span style="font-size:0.95rem;font-weight:700;opacity:1;color:var(--gold);">Total: ₹${sessionTotal}</span>
+      </div>
+    </div>
+    <div class="orders-list">${orderCards}</div>`;
+}
+
 async function loadRecords() {
   const date = document.getElementById('datePicker').value;
   const content = document.getElementById('recordsContent');
@@ -852,73 +936,22 @@ async function loadRecords() {
 
   try {
     const adminHeaders = { 'x-user-name': currentUser };
-    const [summaryRes, ordersRes] = await Promise.all([
-      fetch(`${API}/api/summary?date=${date}`, { headers: adminHeaders }),
-      fetch(`${API}/api/orders?date=${date}`, { headers: adminHeaders })
-    ]);
-    const summary = await summaryRes.json();
-    const orders = await ordersRes.json();
+    const res = await fetch(`${API}/api/orders?date=${date}`, { headers: adminHeaders });
+    const orders = await res.json();
+
+    if (orders.length === 0) {
+      content.innerHTML = `<div class="no-orders"><div class="icon">🍃</div><p>No orders found for this date.</p></div>`;
+      return;
+    }
 
     const dateLabel = new Date(date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const morningOrders = orders.filter(o => parseHour(o.time) < 16);
+    const eveningOrders = orders.filter(o => parseHour(o.time) >= 16);
 
-    const dayTotal = orders.reduce((sum, o) => sum + orderTotal(o.items), 0);
-
-    const summaryKeys = Object.keys(summary.summary || {});
-    const summaryHTML = summaryKeys.length > 0
-      ? `<div class="summary-card">
-          <h3>📊 Day Summary — ${dateLabel}</h3>
-          <div class="summary-grid">
-            ${summaryKeys.map(k => {
-              const item = MENU.find(m => m.name.replace('\n',' ') === k || m.id === k) || {};
-              return `<div class="summary-pill">${item.emoji || '•'} ${k} <strong>×${summary.summary[k]}</strong></div>`;
-            }).join('')}
-          </div>
-          <div style="margin-top:0.75rem;font-size:0.8rem;opacity:0.6;display:flex;justify-content:space-between;align-items:center;">
-            <span>${summary.totalOrders} order${summary.totalOrders !== 1 ? 's' : ''} placed</span>
-            <span style="font-size:0.95rem;font-weight:700;opacity:1;color:var(--gold);">Day Total: ₹${dayTotal}</span>
-          </div>
-        </div>`
-      : '';
-
-    // Group multiple orders from same user into one card
-    const grouped = {};
-    const groupOrder = [];
-    orders.forEach(o => {
-      if (!grouped[o.name]) {
-        grouped[o.name] = { name: o.name, time: o.time, items: [] };
-        groupOrder.push(o.name);
-      }
-      o.items.forEach(i => {
-        const existing = grouped[o.name].items.find(x => x.id === i.id);
-        if (existing) existing.qty += i.qty;
-        else grouped[o.name].items.push({ ...i });
-      });
-    });
-
-    const ordersHTML = groupOrder.length > 0
-      ? `<div class="orders-list">
-          ${groupOrder.map(name => {
-            const g = grouped[name];
-            const total = orderTotal(g.items);
-            return `
-            <div class="order-card">
-              <div class="order-card-top">
-                <div class="order-name">👤 ${g.name}</div>
-                <div class="order-time">${g.time}</div>
-              </div>
-              <div class="order-items-grid">
-                ${g.items.map(i => `<span class="order-item-tag">${i.emoji} ${i.name} ×${i.qty}</span>`).join('')}
-              </div>
-              <div class="order-total-row">Order total: <span>₹${total}</span></div>
-            </div>`;
-          }).join('')}
-        </div>`
-      : `<div class="no-orders">
-          <div class="icon">🍃</div>
-          <p>No orders found for this date.</p>
-        </div>`;
-
-    content.innerHTML = summaryHTML + ordersHTML;
+    content.innerHTML = `
+      <p style="font-size:0.8rem;color:var(--muted);margin-bottom:1rem;">${dateLabel}</p>
+      ${buildSessionHTML(morningOrders, '🌅', 'Morning Break')}
+      ${buildSessionHTML(eveningOrders, '🌆', 'Evening Break')}`;
 
   } catch(e) {
     content.innerHTML = '<div class="no-orders"><div class="icon">⚠️</div><p>Could not load records.</p></div>';
