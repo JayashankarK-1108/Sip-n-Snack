@@ -174,6 +174,21 @@ app.get('/api/orders/date/:date', async (req, res) => {
   }
 });
 
+// Get orders for a user in a date range (for payments)
+app.get('/api/orders/user/:name/range', async (req, res) => {
+  const { from, to } = req.query;
+  if (!from || !to) return res.status(400).json({ error: 'from and to dates required' });
+  try {
+    const { rows } = await pool.query(
+      'SELECT * FROM orders WHERE name = $1 AND date >= $2 AND date <= $3 ORDER BY date ASC, created_at ASC',
+      [req.params.name, from, to]
+    );
+    res.json(rows.map(o => ({ ...o, items: JSON.parse(o.items) })));
+  } catch (e) {
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
 // Get orders for a specific user
 app.get('/api/orders/user/:name', async (req, res) => {
   try {

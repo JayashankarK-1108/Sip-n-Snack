@@ -576,6 +576,63 @@
     }
     .grand-total-card strong { color: var(--gold); font-size: 1.1rem; }
 
+    /* ── Payments Panel ── */
+    .week-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+      gap: 0.75rem;
+    }
+    .week-nav-label {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--espresso);
+      text-align: center;
+      flex: 1;
+    }
+    .week-nav-label span { display: block; font-family: 'DM Sans', sans-serif; font-size: 0.78rem; font-weight: 400; color: var(--muted); margin-top: 0.15rem; }
+    .btn-week-nav {
+      background: var(--card-bg);
+      border: 1.5px solid rgba(107,61,46,0.15);
+      border-radius: 8px;
+      padding: 0.5rem 0.85rem;
+      cursor: pointer;
+      font-size: 1rem;
+      color: var(--coffee);
+      transition: all 0.2s;
+    }
+    .btn-week-nav:hover { border-color: var(--caramel); background: #fff; }
+    .payment-day-card {
+      background: var(--card-bg);
+      border-radius: 14px;
+      padding: 1.1rem 1.25rem;
+      margin-bottom: 0.85rem;
+      box-shadow: 0 2px 12px var(--shadow);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .payment-day-card.no-order { opacity: 0.45; }
+    .payment-day-name { font-weight: 700; font-size: 0.95rem; color: var(--espresso); }
+    .payment-day-date { font-size: 0.78rem; color: var(--muted); margin-top: 0.1rem; }
+    .payment-day-breakdown { font-size: 0.8rem; color: var(--muted); margin-top: 0.3rem; display: flex; gap: 1rem; flex-wrap: wrap; }
+    .payment-day-total { font-weight: 700; font-size: 1.05rem; color: var(--caramel); text-align: right; }
+    .payment-day-total.zero { color: var(--muted); font-weight: 400; }
+    .week-summary-card {
+      background: var(--espresso);
+      color: var(--cream);
+      border-radius: 14px;
+      padding: 1.25rem 1.5rem;
+      margin-top: 1.25rem;
+    }
+    .week-summary-card h3 { font-family: 'Playfair Display', serif; font-size: 1rem; color: var(--gold); margin-bottom: 0.85rem; }
+    .week-summary-row { display: flex; justify-content: space-between; font-size: 0.875rem; margin-bottom: 0.5rem; opacity: 0.85; }
+    .week-summary-row.total { border-top: 1px solid rgba(255,255,255,0.15); padding-top: 0.6rem; margin-top: 0.4rem; font-weight: 700; font-size: 1rem; opacity: 1; }
+    .week-summary-row.total span { color: var(--gold); font-size: 1.15rem; }
+
     .sessions-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -786,6 +843,7 @@
   <button class="tab-btn active" onclick="showTab('order')" id="tabOrder">🛒 Order</button>
   <button class="tab-btn" onclick="showTab('records')" id="tabRecords">📋 Records</button>
   <button class="tab-btn" onclick="showTab('myOrders')" id="tabMyOrders">👤 My Orders</button>
+  <button class="tab-btn" onclick="showTab('myPayments')" id="tabMyPayments">💰 My Payments</button>
 </nav>
 
 <main>
@@ -858,6 +916,15 @@
       <p>All your break orders in one place.</p>
     </div>
     <div id="myOrdersContent"><div class="loading">Loading...</div></div>
+  </div>
+
+  <!-- MY PAYMENTS -->
+  <div class="panel" id="panelMyPayments">
+    <div class="order-header">
+      <h2>💰 My Payments</h2>
+      <p>Weekly breakdown of what you owe. Payments collected every Friday.</p>
+    </div>
+    <div id="myPaymentsContent"><div class="loading">Loading...</div></div>
   </div>
 
 </main>
@@ -962,6 +1029,7 @@ function setUser(name, animated, adminFlag) {
   document.getElementById('navTabs').style.display = 'flex';
   document.getElementById('greetingName').textContent = name;
   document.getElementById('tabRecords').style.display = isAdmin ? '' : 'none';
+  document.getElementById('tabMyPayments').style.display = isAdmin ? 'none' : '';
 
   showPanel('panelOrder');
   document.getElementById('panelLogin').style.display = 'none';
@@ -988,7 +1056,7 @@ function logout() {
 // ── Navigation ──────────────────────────────────────────
 function showTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  const panels = ['panelOrder', 'panelRecords', 'panelMyOrders'];
+  const panels = ['panelOrder', 'panelRecords', 'panelMyOrders', 'panelMyPayments'];
   panels.forEach(p => {
     const el = document.getElementById(p);
     if (el) el.classList.remove('active');
@@ -1006,6 +1074,10 @@ function showTab(tab) {
     document.getElementById('tabMyOrders').classList.add('active');
     showPanel('panelMyOrders');
     loadMyOrders();
+  } else if (tab === 'myPayments') {
+    document.getElementById('tabMyPayments').classList.add('active');
+    showPanel('panelMyPayments');
+    loadMyPayments();
   }
 }
 
@@ -1331,6 +1403,150 @@ async function loadMyOrders() {
   } catch(e) {
     content.innerHTML = '<div class="no-orders"><div class="icon">⚠️</div><p>Could not load your orders.</p></div>';
   }
+}
+
+// ── My Payments ──────────────────────────────────────────
+let paymentsWeekOffset = 0; // 0 = current week, -1 = last week, etc.
+
+function getWeekRange(offset) {
+  const now = new Date();
+  // IST offset: +5:30
+  const ist = new Date(now.getTime() + (5.5 * 60 - now.getTimezoneOffset()) * 60000);
+  const day = ist.getDay(); // 0=Sun, 1=Mon ... 5=Fri, 6=Sat
+  const diffToMon = (day === 0 ? -6 : 1 - day);
+  const monday = new Date(ist);
+  monday.setDate(ist.getDate() + diffToMon + offset * 7);
+  const friday = new Date(monday);
+  friday.setDate(monday.getDate() + 4);
+  const fmt = d => d.toISOString().split('T')[0];
+  return { from: fmt(monday), to: fmt(friday), monday, friday };
+}
+
+function fmtDate(d) {
+  return new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
+
+async function loadMyPayments() {
+  if (!currentUser) return;
+  const content = document.getElementById('myPaymentsContent');
+  content.innerHTML = '<div class="loading">Loading...</div>';
+
+  const { from, to, monday, friday } = getWeekRange(paymentsWeekOffset);
+  const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+
+  try {
+    // Fetch user orders and all session orders for the week in parallel
+    const [userRes] = await Promise.all([
+      fetch(`${API}/api/orders/user/${encodeURIComponent(currentUser)}/range?from=${from}&to=${to}`)
+    ]);
+    const userOrders = await userRes.json();
+
+    // Get unique dates in range that have orders
+    const allDates = [];
+    for (let i = 0; i < 5; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      allDates.push(d.toISOString().split('T')[0]);
+    }
+
+    // Fetch snack share per date
+    const dateSnackShare = {};
+    await Promise.all(allDates.map(async date => {
+      try {
+        const r = await fetch(`${API}/api/orders/date/${date}`);
+        if (!r.ok) return;
+        const all = await r.json();
+        const pool = all
+          .filter(o => o.name.toLowerCase() === adminName.toLowerCase())
+          .reduce((sum, o) => sum + snackCategoryTotal(o.items), 0);
+        const users = [...new Set(all.map(o => o.name))]
+          .filter(n => n.toLowerCase() !== adminName.toLowerCase()).length;
+        dateSnackShare[date] = users > 0 ? Math.ceil(pool / users) : 0;
+      } catch(e) { dateSnackShare[date] = 0; }
+    }));
+
+    // Group user orders by date then by session
+    const byDate = {};
+    userOrders.forEach(o => {
+      if (!byDate[o.date]) byDate[o.date] = { morning: [], evening: [] };
+      if (parseHour(o.time) < 16) byDate[o.date].morning.push(o);
+      else byDate[o.date].evening.push(o);
+    });
+
+    let weekMorning = 0, weekEvening = 0, weekSnack = 0;
+
+    const dayCards = allDates.map((date, i) => {
+      const dayData = byDate[date];
+      const share = dateSnackShare[date] || 0;
+
+      if (!dayData) {
+        return `
+          <div class="payment-day-card no-order">
+            <div>
+              <div class="payment-day-name">${DAYS[i]}</div>
+              <div class="payment-day-date">${fmtDate(date)}</div>
+            </div>
+            <div class="payment-day-total zero">No order</div>
+          </div>`;
+      }
+
+      const morningTotal = dayData.morning.reduce((s, o) => s + orderTotal(o.items), 0);
+      const eveningTotal = dayData.evening.reduce((s, o) => s + orderTotal(o.items), 0);
+      const daySnack = (dayData.morning.length > 0 || dayData.evening.length > 0) ? share : 0;
+      const dayTotal = morningTotal + eveningTotal + daySnack;
+
+      weekMorning += morningTotal;
+      weekEvening += eveningTotal;
+      weekSnack += daySnack;
+
+      const breakdown = [];
+      if (morningTotal > 0) breakdown.push(`🌅 Morning ₹${morningTotal}`);
+      if (eveningTotal > 0) breakdown.push(`🌆 Evening ₹${eveningTotal}`);
+      if (daySnack > 0) breakdown.push(`🍿 Snack share ₹${daySnack}`);
+
+      return `
+        <div class="payment-day-card">
+          <div>
+            <div class="payment-day-name">${DAYS[i]}</div>
+            <div class="payment-day-date">${fmtDate(date)}</div>
+            <div class="payment-day-breakdown">${breakdown.join(' · ')}</div>
+          </div>
+          <div class="payment-day-total">₹${dayTotal}</div>
+        </div>`;
+    }).join('');
+
+    const weekTotal = weekMorning + weekEvening + weekSnack;
+
+    const weekLabel = `${fmtDate(from)} – ${fmtDate(to)}`;
+    const isCurrentWeek = paymentsWeekOffset === 0;
+
+    content.innerHTML = `
+      <div class="week-nav">
+        <button class="btn-week-nav" onclick="changeWeek(-1)">◀</button>
+        <div class="week-nav-label">
+          Week of ${weekLabel}
+          <span>${isCurrentWeek ? 'Current week' : ''}</span>
+        </div>
+        <button class="btn-week-nav" onclick="changeWeek(1)" ${isCurrentWeek ? 'disabled style="opacity:0.3;cursor:default;"' : ''}>▶</button>
+      </div>
+      ${dayCards}
+      <div class="week-summary-card">
+        <h3>📊 Week Summary</h3>
+        ${weekMorning > 0 ? `<div class="week-summary-row"><span>🌅 Morning Total</span><span>₹${weekMorning}</span></div>` : ''}
+        ${weekEvening > 0 ? `<div class="week-summary-row"><span>🌆 Evening Total</span><span>₹${weekEvening}</span></div>` : ''}
+        ${weekSnack > 0 ? `<div class="week-summary-row"><span>🍿 Snack Share Total</span><span>₹${weekSnack}</span></div>` : ''}
+        <div class="week-summary-row total"><span>Total Payable (Fri EOD)</span><span>₹${weekTotal}</span></div>
+      </div>`;
+
+  } catch(e) {
+    content.innerHTML = '<div class="no-orders"><div class="icon">⚠️</div><p>Could not load payments.</p></div>';
+  }
+}
+
+function changeWeek(dir) {
+  if (paymentsWeekOffset === 0 && dir === 1) return;
+  paymentsWeekOffset += dir;
+  loadMyPayments();
 }
 
 // ── Toast ──────────────────────────────────────────────
