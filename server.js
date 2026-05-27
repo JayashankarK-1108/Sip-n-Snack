@@ -62,7 +62,8 @@ app.post('/api/login', async (req, res) => {
   const clean = name.trim();
   try {
     await pool.query('INSERT INTO users (name) VALUES ($1) ON CONFLICT (name) DO NOTHING', [clean]);
-    res.json({ success: true, name: clean, isAdmin: clean.toLowerCase() === ADMIN_NAME });
+    const adminFlag = clean.toLowerCase() === ADMIN_NAME;
+    res.json({ success: true, name: clean, isAdmin: adminFlag, adminName: ADMIN_NAME });
   } catch (e) {
     res.status(500).json({ error: 'DB error' });
   }
@@ -140,6 +141,19 @@ app.get('/api/dates', async (req, res) => {
       'SELECT DISTINCT date FROM orders ORDER BY date DESC LIMIT 60'
     );
     res.json(rows.map(d => d.date));
+  } catch (e) {
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+// Get all orders for a date (public — used for snack share calculation)
+app.get('/api/orders/date/:date', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT name, items FROM orders WHERE date = $1',
+      [req.params.date]
+    );
+    res.json(rows.map(o => ({ name: o.name, items: JSON.parse(o.items) })));
   } catch (e) {
     res.status(500).json({ error: 'DB error' });
   }

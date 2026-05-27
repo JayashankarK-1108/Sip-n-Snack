@@ -238,8 +238,19 @@
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
       gap: 1rem;
-      margin-bottom: 2rem;
+      margin-bottom: 1rem;
     }
+    .menu-section-label {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--coffee);
+      margin: 1.25rem 0 0.5rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 2px solid rgba(107, 61, 46, 0.15);
+      letter-spacing: 0.01em;
+    }
+    .menu-section-label:first-child { margin-top: 0; }
     .menu-item {
       background: var(--card-bg);
       border: 2px solid transparent;
@@ -526,6 +537,94 @@
     }
     .no-orders .icon { font-size: 3rem; margin-bottom: 1rem; }
 
+    /* ── Disclaimer Modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(44, 26, 14, 0.55);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--warm-white);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 520px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 60px rgba(44, 26, 14, 0.3);
+      animation: fadeUp 0.3s ease;
+    }
+    .modal-header {
+      padding: 1.4rem 1.5rem 1rem;
+      border-bottom: 1px solid rgba(107, 61, 46, 0.12);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-shrink: 0;
+    }
+    .modal-header h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.15rem;
+      color: var(--espresso);
+      line-height: 1.3;
+    }
+    .modal-header p {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 0.2rem;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.3rem;
+      color: var(--muted);
+      cursor: pointer;
+      line-height: 1;
+      padding: 0 0 0 0.75rem;
+      flex-shrink: 0;
+    }
+    .modal-close:hover { color: var(--espresso); }
+    .modal-body {
+      overflow-y: auto;
+      padding: 1.25rem 1.5rem 1.5rem;
+      flex: 1;
+    }
+    .disclaimer-section {
+      margin-bottom: 1.25rem;
+    }
+    .disclaimer-section h3 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--coffee);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.4rem;
+    }
+    .disclaimer-section p {
+      font-size: 0.875rem;
+      color: var(--espresso);
+      line-height: 1.65;
+      opacity: 0.85;
+    }
+    .btn-disclaimer {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.25);
+      color: rgba(255,255,255,0.7);
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.78rem;
+      font-family: 'DM Sans', sans-serif;
+      transition: all 0.2s;
+    }
+    .btn-disclaimer:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
+
     /* ── Toast ── */
     .toast {
       position: fixed;
@@ -571,10 +670,46 @@
     <h1>Sip <span>&</span> Snack</h1>
   </div>
   <div class="header-user" id="headerUser">
+    <button class="btn-disclaimer" onclick="openDisclaimer()">📋 Disclaimer</button>
     <span id="headerName" class="user-badge"></span>
     <button class="btn-logout" onclick="logout()">Logout</button>
   </div>
 </header>
+
+<!-- Disclaimer Modal -->
+<div class="modal-overlay" id="disclaimerOverlay" onclick="closeDisclaimer(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h2>📋 Snack Cost Sharing Policy</h2>
+        <p>Please read before placing your order</p>
+      </div>
+      <button class="modal-close" onclick="closeDisclaimer()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="disclaimer-section">
+        <h3>Snack costs are shared equally</h3>
+        <p>The total price of all snacks ordered during a break session will be divided equally among everyone who places a beverage order (tea, coffee, or any other drink).</p>
+      </div>
+      <div class="disclaimer-section">
+        <h3>Participation implies contribution</h3>
+        <p>By placing a beverage order through Sip n Snack, you automatically consent to your proportional share of snack costs for that session, regardless of whether you personally consumed any snack.</p>
+      </div>
+      <div class="disclaimer-section">
+        <h3>No individual snack attribution</h3>
+        <p>Snacks are considered a communal item. The app does not track which individual consumed which snack, and no adjustments will be made based on personal snack consumption.</p>
+      </div>
+      <div class="disclaimer-section">
+        <h3>No post-session disputes</h3>
+        <p>Once a session is closed and costs are settled, the charges are final. You waive all rights to raise billing disputes, demand refunds, or contest the snack cost split after settlement.</p>
+      </div>
+      <div class="disclaimer-section">
+        <h3>Transparency of charges</h3>
+        <p>Your session summary will display the total snack cost, the number of participants, and your individual share before any deduction is made.</p>
+      </div>
+    </div>
+  </div>
+</div>
 
 <nav class="nav-tabs" id="navTabs" style="display:none;">
   <button class="tab-btn active" onclick="showTab('order')" id="tabOrder">🛒 Order</button>
@@ -606,7 +741,7 @@
       <p>Pick your items and set quantities. Hit submit when done!</p>
     </div>
 
-    <div class="menu-grid" id="menuGrid"></div>
+    <div id="menuGrid"></div>
 
     <div class="order-summary">
       <h3>🧾 Your Order</h3>
@@ -648,26 +783,52 @@
 // ── State ──────────────────────────────────────────────
 let currentUser = null;
 let isAdmin = false;
+let adminName = '';
 const API = '';
 
 const MENU = [
-  { id: 'tea',           name: 'Tea',               emoji: '🍵', price: '₹15' },
-  { id: 'coffee',        name: 'Coffee',             emoji: '☕', price: '₹15' },
-  { id: 'lemon_tea',     name: 'Lemon Tea',          emoji: '🍋', price: '₹17' },
-  { id: 'honey_tea',     name: 'Lemon Tea\nwith Honey', emoji: '🍯', price: '₹18' },
-  { id: 'buttermilk',    name: 'Buttermilk',         emoji: '🥛', price: '₹20' },
-  { id: 'biscuits',      name: 'Biscuits',           emoji: '🍪', price: '₹5' },
-  { id: 'peanuts',       name: 'Peanuts',            emoji: '🥜', price: '₹10' },
-  { id: 'snacks',        name: 'Snacks',             emoji: '🧆', price: '₹15' },
+  { id: 'tea',           name: 'Tea',               emoji: '🍵', price: '₹15', category: 'Beverages' },
+  { id: 'coffee',        name: 'Coffee',             emoji: '☕', price: '₹15', category: 'Beverages' },
+  { id: 'lemon_tea',     name: 'Lemon Tea',          emoji: '🍋', price: '₹17', category: 'Beverages' },
+  { id: 'honey_tea',     name: 'Lemon Tea\nwith Honey', emoji: '🍯', price: '₹18', category: 'Beverages' },
+  { id: 'buttermilk',    name: 'Buttermilk',         emoji: '🥛', price: '₹20', category: 'Beverages' },
+  { id: 'biscuits',      name: 'Biscuits',           emoji: '🍪', price: '₹5',  category: 'Snacks' },
+  { id: 'peanuts',       name: 'Peanuts',            emoji: '🥜', price: '₹10', category: 'Snacks' },
+  { id: 'samosa',        name: 'Samosa',             emoji: '🥐', price: '₹15', category: 'Snacks' },
+  { id: 'egg_puffs',     name: 'Egg Puffs',          emoji: '🥚', price: '₹15', category: 'Snacks' },
+  { id: 'paneer_puffs',  name: 'Paneer Puffs',       emoji: '🧀', price: '₹15', category: 'Snacks' },
+  { id: 'mc_coffee',     name: 'Coffee',             emoji: '☕', price: '₹15', category: 'Madras Coffee' },
+  { id: 'mc_tea',        name: 'Tea',                emoji: '🍵', price: '₹15', category: 'Madras Coffee' },
+  { id: 'mc_buttermilk', name: 'Buttermilk',         emoji: '🥛', price: '₹20', category: 'Madras Coffee' },
+  { id: 'mc_samosa',     name: 'Samosa',             emoji: '🥐', price: '₹15', category: 'Madras Coffee' },
 ];
 
 let selected = {}; // { id: qty }
 
+function itemPrice(id) {
+  const menu = MENU.find(m => m.id === id);
+  return menu ? parseInt(menu.price.replace('₹', '')) : 0;
+}
+
 function orderTotal(items) {
+  return items.reduce((sum, i) => sum + itemPrice(i.id) * i.qty, 0);
+}
+
+// Total of only non-Snacks items for a user
+function nonSnackTotal(items) {
   return items.reduce((sum, i) => {
     const menu = MENU.find(m => m.id === i.id);
-    const price = menu ? parseInt(menu.price.replace('₹', '')) : 0;
-    return sum + price * i.qty;
+    if (menu && menu.category === 'Snacks') return sum;
+    return sum + itemPrice(i.id) * i.qty;
+  }, 0);
+}
+
+// Total of only Snacks-category items
+function snackCategoryTotal(items) {
+  return items.reduce((sum, i) => {
+    const menu = MENU.find(m => m.id === i.id);
+    if (!menu || menu.category !== 'Snacks') return sum;
+    return sum + itemPrice(i.id) * i.qty;
   }, 0);
 }
 
@@ -675,6 +836,7 @@ function orderTotal(items) {
 document.addEventListener('DOMContentLoaded', () => {
   const saved = localStorage.getItem('sipsnack_user');
   const savedAdmin = localStorage.getItem('sipsnack_admin') === '1';
+  adminName = localStorage.getItem('sipsnack_adminname') || '';
   if (saved) setUser(saved, false, savedAdmin);
 
   buildMenu();
@@ -699,6 +861,8 @@ async function login() {
     const data = await res.json();
     localStorage.setItem('sipsnack_user', data.name);
     localStorage.setItem('sipsnack_admin', data.isAdmin ? '1' : '0');
+    localStorage.setItem('sipsnack_adminname', data.adminName || '');
+    adminName = data.adminName || '';
     setUser(data.name, true, data.isAdmin);
   } catch(e) {
     showToast('Connection error, please try again.', 'error');
@@ -722,8 +886,10 @@ function setUser(name, animated, adminFlag) {
 function logout() {
   localStorage.removeItem('sipsnack_user');
   localStorage.removeItem('sipsnack_admin');
+  localStorage.removeItem('sipsnack_adminname');
   currentUser = null;
   isAdmin = false;
+  adminName = '';
   selected = {};
   document.getElementById('headerUser').classList.remove('visible');
   document.getElementById('navTabs').style.display = 'none';
@@ -766,8 +932,10 @@ function showPanel(id) {
 
 // ── Menu ──────────────────────────────────────────────
 function buildMenu() {
-  const grid = document.getElementById('menuGrid');
-  grid.innerHTML = MENU.map(item => `
+  const container = document.getElementById('menuGrid');
+  const categories = [...new Set(MENU.map(m => m.category))];
+
+  const itemCard = item => `
     <div class="menu-item" id="mi-${item.id}" onclick="toggleItem('${item.id}')">
       <div class="check-badge">✓</div>
       <span class="menu-emoji">${item.emoji}</span>
@@ -778,8 +946,14 @@ function buildMenu() {
         <span class="qty-display" id="qty-${item.id}">1</span>
         <button class="qty-btn" onclick="changeQty('${item.id}', 1)">+</button>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+
+  container.innerHTML = categories.map(cat => {
+    const items = MENU.filter(m => m.category === cat);
+    return `
+      <div class="menu-section-label">${cat === 'Beverages' ? '☕' : cat === 'Snacks' ? '🍿' : '☕'} ${cat}</div>
+      <div class="menu-grid">${items.map(itemCard).join('')}</div>`;
+  }).join('');
 }
 
 function toggleItem(id) {
@@ -906,27 +1080,47 @@ function buildSessionHTML(sessionOrders, icon, label) {
     });
   });
 
+  // Only pool snack costs from admin orders; individual user snack orders are their own expense
+  const snackPool = sessionOrders
+    .filter(o => o.name.toLowerCase() === adminName.toLowerCase())
+    .reduce((sum, o) => sum + snackCategoryTotal(o.items), 0);
+  const userCount = groupOrder.filter(n => n.toLowerCase() !== adminName.toLowerCase()).length;
+  const snackShare = userCount > 0 ? Math.ceil(snackPool / userCount) : 0;
   const sessionTotal = sessionOrders.reduce((sum, o) => sum + orderTotal(o.items), 0);
 
   const summaryPills = Object.entries(itemSummary)
     .map(([name, v]) => `<div class="summary-pill">${v.emoji} ${name} <strong>×${v.qty}</strong></div>`)
     .join('');
 
-  const orderCards = groupOrder.map(name => {
-    const g = grouped[name];
-    const total = orderTotal(g.items);
-    return `
-      <div class="order-card">
-        <div class="order-card-top">
-          <div class="order-name">👤 ${g.name}</div>
-          <div class="order-time">${g.time}</div>
-        </div>
-        <div class="order-items-grid">
-          ${g.items.map(i => `<span class="order-item-tag">${i.emoji} ${i.name} ×${i.qty}</span>`).join('')}
-        </div>
-        <div class="order-total-row">Order total: <span>₹${total}</span></div>
-      </div>`;
-  }).join('');
+  const snackPoolNote = snackPool > 0
+    ? `<div style="margin-top:0.5rem;font-size:0.78rem;opacity:0.7;">
+        🍿 Snacks ₹${snackPool} shared among ${userCount} ${userCount === 1 ? 'person' : 'people'} = <strong>₹${snackShare}/person</strong>
+       </div>`
+    : '';
+
+  const orderCards = groupOrder
+    .filter(name => name.toLowerCase() !== adminName.toLowerCase()) // hide Admin card
+    .map(name => {
+      const g = grouped[name];
+      const ownSnacks = snackCategoryTotal(g.items);
+      const beverages = nonSnackTotal(g.items);
+      const finalTotal = beverages + ownSnacks + snackShare;
+      const snackRow = snackPool > 0
+        ? `<div class="order-total-row" style="opacity:0.65;font-weight:400;">Snack share: <span>₹${snackShare}</span></div>`
+        : '';
+      return `
+        <div class="order-card">
+          <div class="order-card-top">
+            <div class="order-name">👤 ${g.name}</div>
+            <div class="order-time">${g.time}</div>
+          </div>
+          <div class="order-items-grid">
+            ${g.items.map(i => `<span class="order-item-tag">${i.emoji} ${i.name} ×${i.qty}</span>`).join('')}
+          </div>
+          ${snackRow}
+          <div class="order-total-row">Total payable: <span>₹${finalTotal}</span></div>
+        </div>`;
+    }).join('');
 
   return `
     <div class="session-col">
@@ -934,9 +1128,10 @@ function buildSessionHTML(sessionOrders, icon, label) {
       <div class="summary-card">
         <div class="summary-grid">${summaryPills}</div>
         <div style="margin-top:0.75rem;font-size:0.8rem;opacity:0.6;display:flex;justify-content:space-between;align-items:center;">
-          <span>${sessionOrders.length} order${sessionOrders.length !== 1 ? 's' : ''} placed</span>
+          <span>${userCount} ${userCount === 1 ? 'person' : 'people'} ordered</span>
           <span style="font-size:0.95rem;font-weight:700;opacity:1;color:var(--gold);">Total: ₹${sessionTotal}</span>
         </div>
+        ${snackPoolNote}
       </div>
       <div class="orders-list">${orderCards}</div>
     </div>`;
@@ -991,29 +1186,62 @@ async function loadMyOrders() {
       return;
     }
 
-    const grandTotal = orders.reduce((sum, o) => sum + orderTotal(o.items), 0);
+    // Fetch all orders per unique date to compute snack share per session
+    const uniqueDates = [...new Set(orders.map(o => o.date))];
+    const dateSnackShare = {}; // date -> snack share per person for that day
 
+    await Promise.all(uniqueDates.map(async date => {
+      try {
+        const r = await fetch(`${API}/api/orders/date/${date}`);
+        if (!r.ok) return;
+        const allOrders = await r.json();
+        // Pool only admin-ordered snacks
+        const pool = allOrders
+          .filter(o => o.name.toLowerCase() === adminName.toLowerCase())
+          .reduce((sum, o) => sum + snackCategoryTotal(o.items), 0);
+        const users = [...new Set(allOrders.map(o => o.name))]
+          .filter(n => n.toLowerCase() !== adminName.toLowerCase()).length;
+        dateSnackShare[date] = users > 0 ? Math.ceil(pool / users) : 0;
+      } catch(e) { dateSnackShare[date] = 0; }
+    }));
+
+    const viewerIsAdmin = currentUser.toLowerCase() === adminName.toLowerCase();
+    let grandTotal = 0;
+    const cards = orders.map(o => {
+      const myItems = orderTotal(o.items);
+      const share = viewerIsAdmin ? 0 : (dateSnackShare[o.date] || 0);
+      const session = parseHour(o.time) < 16 ? '🌅 Morning' : '🌆 Evening';
+      const payable = myItems + share;
+      grandTotal += payable;
+
+      const snackRow = !viewerIsAdmin && share > 0
+        ? `<div class="order-total-row" style="opacity:0.65;font-weight:400;">Snack share: <span>₹${share}</span></div>`
+        : '';
+      const totalRow = viewerIsAdmin
+        ? `<div class="order-total-row">Order total: <span>₹${myItems}</span></div>`
+        : `<div class="order-total-row">Total payable: <span>₹${payable}</span></div>`;
+
+      return `
+        <div class="order-card">
+          <div class="order-card-top">
+            <div class="order-name">📅 ${o.date} <span style="font-size:0.75rem;opacity:0.6;margin-left:0.4rem;">${session}</span></div>
+            <div class="order-time">${o.time}</div>
+          </div>
+          <div class="order-items-grid">
+            ${o.items.map(i => `<span class="order-item-tag">${i.emoji} ${i.name} ×${i.qty}</span>`).join('')}
+          </div>
+          ${snackRow}
+          ${totalRow}
+        </div>`;
+    }).join('');
+
+    const grandLabel = viewerIsAdmin ? 'Total ordered' : 'Total payable';
     content.innerHTML = `
       <div class="grand-total-card">
-        <span>Total spent (last ${orders.length} order${orders.length !== 1 ? 's' : ''})</span>
+        <span>${grandLabel} (last ${orders.length} order${orders.length !== 1 ? 's' : ''})</span>
         <strong>₹${grandTotal}</strong>
       </div>
-      <div class="orders-list">
-        ${orders.map(o => {
-          const total = orderTotal(o.items);
-          return `
-            <div class="order-card">
-              <div class="order-card-top">
-                <div class="order-name">📅 ${o.date}</div>
-                <div class="order-time">${o.time}</div>
-              </div>
-              <div class="order-items-grid">
-                ${o.items.map(i => `<span class="order-item-tag">${i.emoji} ${i.name} ×${i.qty}</span>`).join('')}
-              </div>
-              <div class="order-total-row">Order total: <span>₹${total}</span></div>
-            </div>`;
-        }).join('')}
-      </div>`;
+      <div class="orders-list">${cards}</div>`;
 
   } catch(e) {
     content.innerHTML = '<div class="no-orders"><div class="icon">⚠️</div><p>Could not load your orders.</p></div>';
@@ -1030,6 +1258,16 @@ function showToast(msg, type = '') {
   t.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── Disclaimer ──────────────────────────────────────────
+function openDisclaimer() {
+  document.getElementById('disclaimerOverlay').classList.add('open');
+}
+function closeDisclaimer(e) {
+  if (!e || e.target === document.getElementById('disclaimerOverlay')) {
+    document.getElementById('disclaimerOverlay').classList.remove('open');
+  }
 }
 
 // Enter key on login
