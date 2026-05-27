@@ -537,6 +537,94 @@
     }
     .no-orders .icon { font-size: 3rem; margin-bottom: 1rem; }
 
+    /* ── Disclaimer Modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(44, 26, 14, 0.55);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--warm-white);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 520px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 60px rgba(44, 26, 14, 0.3);
+      animation: fadeUp 0.3s ease;
+    }
+    .modal-header {
+      padding: 1.4rem 1.5rem 1rem;
+      border-bottom: 1px solid rgba(107, 61, 46, 0.12);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-shrink: 0;
+    }
+    .modal-header h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.15rem;
+      color: var(--espresso);
+      line-height: 1.3;
+    }
+    .modal-header p {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 0.2rem;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.3rem;
+      color: var(--muted);
+      cursor: pointer;
+      line-height: 1;
+      padding: 0 0 0 0.75rem;
+      flex-shrink: 0;
+    }
+    .modal-close:hover { color: var(--espresso); }
+    .modal-body {
+      overflow-y: auto;
+      padding: 1.25rem 1.5rem 1.5rem;
+      flex: 1;
+    }
+    .disclaimer-section {
+      margin-bottom: 1.25rem;
+    }
+    .disclaimer-section h3 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--coffee);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.4rem;
+    }
+    .disclaimer-section p {
+      font-size: 0.875rem;
+      color: var(--espresso);
+      line-height: 1.65;
+      opacity: 0.85;
+    }
+    .btn-disclaimer {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.25);
+      color: rgba(255,255,255,0.7);
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.78rem;
+      font-family: 'DM Sans', sans-serif;
+      transition: all 0.2s;
+    }
+    .btn-disclaimer:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
+
     /* ── Toast ── */
     .toast {
       position: fixed;
@@ -582,10 +670,46 @@
     <h1>Sip <span>&</span> Snack</h1>
   </div>
   <div class="header-user" id="headerUser">
+    <button class="btn-disclaimer" onclick="openDisclaimer()">📋 Disclaimer</button>
     <span id="headerName" class="user-badge"></span>
     <button class="btn-logout" onclick="logout()">Logout</button>
   </div>
 </header>
+
+<!-- Disclaimer Modal -->
+<div class="modal-overlay" id="disclaimerOverlay" onclick="closeDisclaimer(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h2>📋 Snack Cost Sharing Policy</h2>
+        <p>Please read before placing your order</p>
+      </div>
+      <button class="modal-close" onclick="closeDisclaimer()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="disclaimer-section">
+        <h3>Snack costs are shared equally</h3>
+        <p>The total price of all snacks ordered during a break session will be divided equally among everyone who places a beverage order (tea, coffee, or any other drink).</p>
+      </div>
+      <div class="disclaimer-section">
+        <h3>Participation implies contribution</h3>
+        <p>By placing a beverage order through Sip n Snack, you automatically consent to your proportional share of snack costs for that session, regardless of whether you personally consumed any snack.</p>
+      </div>
+      <div class="disclaimer-section">
+        <h3>No individual snack attribution</h3>
+        <p>Snacks are considered a communal item. The app does not track which individual consumed which snack, and no adjustments will be made based on personal snack consumption.</p>
+      </div>
+      <div class="disclaimer-section">
+        <h3>No post-session disputes</h3>
+        <p>Once a session is closed and costs are settled, the charges are final. You waive all rights to raise billing disputes, demand refunds, or contest the snack cost split after settlement.</p>
+      </div>
+      <div class="disclaimer-section">
+        <h3>Transparency of charges</h3>
+        <p>Your session summary will display the total snack cost, the number of participants, and your individual share before any deduction is made.</p>
+      </div>
+    </div>
+  </div>
+</div>
 
 <nav class="nav-tabs" id="navTabs" style="display:none;">
   <button class="tab-btn active" onclick="showTab('order')" id="tabOrder">🛒 Order</button>
@@ -1090,6 +1214,16 @@ function showToast(msg, type = '') {
   t.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── Disclaimer ──────────────────────────────────────────
+function openDisclaimer() {
+  document.getElementById('disclaimerOverlay').classList.add('open');
+}
+function closeDisclaimer(e) {
+  if (!e || e.target === document.getElementById('disclaimerOverlay')) {
+    document.getElementById('disclaimerOverlay').classList.remove('open');
+  }
 }
 
 // Enter key on login
