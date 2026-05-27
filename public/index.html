@@ -680,11 +680,30 @@ const MENU = [
 
 let selected = {}; // { id: qty }
 
+function itemPrice(id) {
+  const menu = MENU.find(m => m.id === id);
+  return menu ? parseInt(menu.price.replace('₹', '')) : 0;
+}
+
 function orderTotal(items) {
+  return items.reduce((sum, i) => sum + itemPrice(i.id) * i.qty, 0);
+}
+
+// Total of only non-Snacks items for a user
+function nonSnackTotal(items) {
   return items.reduce((sum, i) => {
     const menu = MENU.find(m => m.id === i.id);
-    const price = menu ? parseInt(menu.price.replace('₹', '')) : 0;
-    return sum + price * i.qty;
+    if (menu && menu.category === 'Snacks') return sum;
+    return sum + itemPrice(i.id) * i.qty;
+  }, 0);
+}
+
+// Total of only Snacks-category items
+function snackCategoryTotal(items) {
+  return items.reduce((sum, i) => {
+    const menu = MENU.find(m => m.id === i.id);
+    if (!menu || menu.category !== 'Snacks') return sum;
+    return sum + itemPrice(i.id) * i.qty;
   }, 0);
 }
 
@@ -931,15 +950,29 @@ function buildSessionHTML(sessionOrders, icon, label) {
     });
   });
 
+  // Snack cost sharing: pool all snack costs, split equally across all users
+  const snackPool = sessionOrders.reduce((sum, o) => sum + snackCategoryTotal(o.items), 0);
+  const userCount = groupOrder.length;
+  const snackShare = userCount > 0 ? Math.ceil(snackPool / userCount) : 0;
   const sessionTotal = sessionOrders.reduce((sum, o) => sum + orderTotal(o.items), 0);
 
   const summaryPills = Object.entries(itemSummary)
     .map(([name, v]) => `<div class="summary-pill">${v.emoji} ${name} <strong>×${v.qty}</strong></div>`)
     .join('');
 
+  const snackPoolNote = snackPool > 0
+    ? `<div style="margin-top:0.5rem;font-size:0.78rem;opacity:0.7;">
+        🍿 Snacks ₹${snackPool} shared among ${userCount} ${userCount === 1 ? 'person' : 'people'} = <strong>₹${snackShare}/person</strong>
+       </div>`
+    : '';
+
   const orderCards = groupOrder.map(name => {
     const g = grouped[name];
-    const total = orderTotal(g.items);
+    const beverages = nonSnackTotal(g.items);
+    const finalTotal = beverages + snackShare;
+    const snackRow = snackPool > 0
+      ? `<div class="order-total-row" style="opacity:0.65;font-weight:400;">Snack share: <span>₹${snackShare}</span></div>`
+      : '';
     return `
       <div class="order-card">
         <div class="order-card-top">
@@ -949,7 +982,8 @@ function buildSessionHTML(sessionOrders, icon, label) {
         <div class="order-items-grid">
           ${g.items.map(i => `<span class="order-item-tag">${i.emoji} ${i.name} ×${i.qty}</span>`).join('')}
         </div>
-        <div class="order-total-row">Order total: <span>₹${total}</span></div>
+        ${snackRow}
+        <div class="order-total-row">Total payable: <span>₹${finalTotal}</span></div>
       </div>`;
   }).join('');
 
@@ -959,9 +993,10 @@ function buildSessionHTML(sessionOrders, icon, label) {
       <div class="summary-card">
         <div class="summary-grid">${summaryPills}</div>
         <div style="margin-top:0.75rem;font-size:0.8rem;opacity:0.6;display:flex;justify-content:space-between;align-items:center;">
-          <span>${sessionOrders.length} order${sessionOrders.length !== 1 ? 's' : ''} placed</span>
+          <span>${userCount} ${userCount === 1 ? 'person' : 'people'} ordered</span>
           <span style="font-size:0.95rem;font-weight:700;opacity:1;color:var(--gold);">Total: ₹${sessionTotal}</span>
         </div>
+        ${snackPoolNote}
       </div>
       <div class="orders-list">${orderCards}</div>
     </div>`;
