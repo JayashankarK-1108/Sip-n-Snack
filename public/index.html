@@ -1098,30 +1098,29 @@ function buildSessionHTML(sessionOrders, icon, label) {
        </div>`
     : '';
 
-  const orderCards = groupOrder.map(name => {
-    const g = grouped[name];
-    const isAdminUser = name.toLowerCase() === adminName.toLowerCase();
-    // Admin's snack cost is shared (already in snackPool), so exclude from their own line
-    // Regular users keep their own snack cost + share of admin snack pool
-    const ownSnacks = isAdminUser ? 0 : snackCategoryTotal(g.items);
-    const beverages = nonSnackTotal(g.items);
-    const finalTotal = beverages + ownSnacks + snackShare;
-    const snackRow = snackPool > 0
-      ? `<div class="order-total-row" style="opacity:0.65;font-weight:400;">Snack share: <span>₹${snackShare}</span></div>`
-      : '';
-    return `
-      <div class="order-card">
-        <div class="order-card-top">
-          <div class="order-name">👤 ${g.name}</div>
-          <div class="order-time">${g.time}</div>
-        </div>
-        <div class="order-items-grid">
-          ${g.items.map(i => `<span class="order-item-tag">${i.emoji} ${i.name} ×${i.qty}</span>`).join('')}
-        </div>
-        ${snackRow}
-        <div class="order-total-row">Total payable: <span>₹${finalTotal}</span></div>
-      </div>`;
-  }).join('');
+  const orderCards = groupOrder
+    .filter(name => name.toLowerCase() !== adminName.toLowerCase()) // hide Admin card
+    .map(name => {
+      const g = grouped[name];
+      const ownSnacks = snackCategoryTotal(g.items);
+      const beverages = nonSnackTotal(g.items);
+      const finalTotal = beverages + ownSnacks + snackShare;
+      const snackRow = snackPool > 0
+        ? `<div class="order-total-row" style="opacity:0.65;font-weight:400;">Snack share: <span>₹${snackShare}</span></div>`
+        : '';
+      return `
+        <div class="order-card">
+          <div class="order-card-top">
+            <div class="order-name">👤 ${g.name}</div>
+            <div class="order-time">${g.time}</div>
+          </div>
+          <div class="order-items-grid">
+            ${g.items.map(i => `<span class="order-item-tag">${i.emoji} ${i.name} ×${i.qty}</span>`).join('')}
+          </div>
+          ${snackRow}
+          <div class="order-total-row">Total payable: <span>₹${finalTotal}</span></div>
+        </div>`;
+    }).join('');
 
   return `
     <div class="session-col">
@@ -1206,17 +1205,21 @@ async function loadMyOrders() {
       } catch(e) { dateSnackShare[date] = 0; }
     }));
 
+    const viewerIsAdmin = currentUser.toLowerCase() === adminName.toLowerCase();
     let grandTotal = 0;
     const cards = orders.map(o => {
       const myItems = orderTotal(o.items);
-      const share = dateSnackShare[o.date] || 0;
+      const share = viewerIsAdmin ? 0 : (dateSnackShare[o.date] || 0);
       const session = parseHour(o.time) < 16 ? '🌅 Morning' : '🌆 Evening';
       const payable = myItems + share;
       grandTotal += payable;
 
-      const snackRow = share > 0
+      const snackRow = !viewerIsAdmin && share > 0
         ? `<div class="order-total-row" style="opacity:0.65;font-weight:400;">Snack share: <span>₹${share}</span></div>`
         : '';
+      const totalRow = viewerIsAdmin
+        ? `<div class="order-total-row">Order total: <span>₹${myItems}</span></div>`
+        : `<div class="order-total-row">Total payable: <span>₹${payable}</span></div>`;
 
       return `
         <div class="order-card">
@@ -1228,13 +1231,14 @@ async function loadMyOrders() {
             ${o.items.map(i => `<span class="order-item-tag">${i.emoji} ${i.name} ×${i.qty}</span>`).join('')}
           </div>
           ${snackRow}
-          <div class="order-total-row">Total payable: <span>₹${payable}</span></div>
+          ${totalRow}
         </div>`;
     }).join('');
 
+    const grandLabel = viewerIsAdmin ? 'Total ordered' : 'Total payable';
     content.innerHTML = `
       <div class="grand-total-card">
-        <span>Total payable (last ${orders.length} order${orders.length !== 1 ? 's' : ''})</span>
+        <span>${grandLabel} (last ${orders.length} order${orders.length !== 1 ? 's' : ''})</span>
         <strong>₹${grandTotal}</strong>
       </div>
       <div class="orders-list">${cards}</div>`;
