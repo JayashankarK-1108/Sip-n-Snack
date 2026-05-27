@@ -146,6 +146,19 @@ app.get('/api/dates', async (req, res) => {
   }
 });
 
+// Get all orders for a date (public — used for snack share calculation)
+app.get('/api/orders/date/:date', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT name, items FROM orders WHERE date = $1',
+      [req.params.date]
+    );
+    res.json(rows.map(o => ({ name: o.name, items: JSON.parse(o.items) })));
+  } catch (e) {
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
 // Get orders for a specific user
 app.get('/api/orders/user/:name', async (req, res) => {
   try {

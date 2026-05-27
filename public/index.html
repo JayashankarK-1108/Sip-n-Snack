@@ -1187,29 +1187,56 @@ async function loadMyOrders() {
       return;
     }
 
-    const grandTotal = orders.reduce((sum, o) => sum + orderTotal(o.items), 0);
+    // Fetch all orders per unique date to compute snack share per session
+    const uniqueDates = [...new Set(orders.map(o => o.date))];
+    const dateSnackShare = {}; // date -> snack share per person for that day
+
+    await Promise.all(uniqueDates.map(async date => {
+      try {
+        const r = await fetch(`${API}/api/orders/date/${date}`);
+        if (!r.ok) return;
+        const allOrders = await r.json();
+        // Pool only admin-ordered snacks
+        const pool = allOrders
+          .filter(o => o.name.toLowerCase() === adminName.toLowerCase())
+          .reduce((sum, o) => sum + snackCategoryTotal(o.items), 0);
+        const users = [...new Set(allOrders.map(o => o.name))].length;
+        dateSnackShare[date] = users > 0 ? Math.ceil(pool / users) : 0;
+      } catch(e) { dateSnackShare[date] = 0; }
+    }));
+
+    let grandTotal = 0;
+    const cards = orders.map(o => {
+      const myItems = orderTotal(o.items);
+      const share = dateSnackShare[o.date] || 0;
+      const session = parseHour(o.time) < 16 ? '🌅 Morning' : '🌆 Evening';
+      const payable = myItems + share;
+      grandTotal += payable;
+
+      const snackRow = share > 0
+        ? `<div class="order-total-row" style="opacity:0.65;font-weight:400;">Snack share: <span>₹${share}</span></div>`
+        : '';
+
+      return `
+        <div class="order-card">
+          <div class="order-card-top">
+            <div class="order-name">📅 ${o.date} <span style="font-size:0.75rem;opacity:0.6;margin-left:0.4rem;">${session}</span></div>
+            <div class="order-time">${o.time}</div>
+          </div>
+          <div class="order-items-grid">
+            ${o.items.map(i => `<span class="order-item-tag">${i.emoji} ${i.name} ×${i.qty}</span>`).join('')}
+          </div>
+          ${snackRow}
+          <div class="order-total-row">Total payable: <span>₹${payable}</span></div>
+        </div>`;
+    }).join('');
 
     content.innerHTML = `
       <div class="grand-total-card">
-        <span>Total spent (last ${orders.length} order${orders.length !== 1 ? 's' : ''})</span>
+        <span>Total payable (last ${orders.length} order${orders.length !== 1 ? 's' : ''})</span>
         <strong>₹${grandTotal}</strong>
       </div>
-      <div class="orders-list">
-        ${orders.map(o => {
-          const total = orderTotal(o.items);
-          return `
-            <div class="order-card">
-              <div class="order-card-top">
-                <div class="order-name">📅 ${o.date}</div>
-                <div class="order-time">${o.time}</div>
-              </div>
-              <div class="order-items-grid">
-                ${o.items.map(i => `<span class="order-item-tag">${i.emoji} ${i.name} ×${i.qty}</span>`).join('')}
-              </div>
-              <div class="order-total-row">Order total: <span>₹${total}</span></div>
-            </div>`;
-        }).join('')}
-      </div>`;
+      <div class="orders-list">${cards}</div>`;
 
   } catch(e) {
     content.innerHTML = '<div class="no-orders"><div class="icon">⚠️</div><p>Could not load your orders.</p></div>';
