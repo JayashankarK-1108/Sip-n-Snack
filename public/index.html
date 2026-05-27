@@ -783,6 +783,7 @@
 // ── State ──────────────────────────────────────────────
 let currentUser = null;
 let isAdmin = false;
+let adminName = '';
 const API = '';
 
 const MENU = [
@@ -835,6 +836,7 @@ function snackCategoryTotal(items) {
 document.addEventListener('DOMContentLoaded', () => {
   const saved = localStorage.getItem('sipsnack_user');
   const savedAdmin = localStorage.getItem('sipsnack_admin') === '1';
+  adminName = localStorage.getItem('sipsnack_adminname') || '';
   if (saved) setUser(saved, false, savedAdmin);
 
   buildMenu();
@@ -859,6 +861,8 @@ async function login() {
     const data = await res.json();
     localStorage.setItem('sipsnack_user', data.name);
     localStorage.setItem('sipsnack_admin', data.isAdmin ? '1' : '0');
+    localStorage.setItem('sipsnack_adminname', data.adminName || '');
+    adminName = data.adminName || '';
     setUser(data.name, true, data.isAdmin);
   } catch(e) {
     showToast('Connection error, please try again.', 'error');
@@ -882,8 +886,10 @@ function setUser(name, animated, adminFlag) {
 function logout() {
   localStorage.removeItem('sipsnack_user');
   localStorage.removeItem('sipsnack_admin');
+  localStorage.removeItem('sipsnack_adminname');
   currentUser = null;
   isAdmin = false;
+  adminName = '';
   selected = {};
   document.getElementById('headerUser').classList.remove('visible');
   document.getElementById('navTabs').style.display = 'none';
@@ -1074,8 +1080,10 @@ function buildSessionHTML(sessionOrders, icon, label) {
     });
   });
 
-  // Snack cost sharing: pool all snack costs, split equally across all users
-  const snackPool = sessionOrders.reduce((sum, o) => sum + snackCategoryTotal(o.items), 0);
+  // Only pool snack costs from admin orders; individual user snack orders are their own expense
+  const snackPool = sessionOrders
+    .filter(o => o.name.toLowerCase() === adminName.toLowerCase())
+    .reduce((sum, o) => sum + snackCategoryTotal(o.items), 0);
   const userCount = groupOrder.length;
   const snackShare = userCount > 0 ? Math.ceil(snackPool / userCount) : 0;
   const sessionTotal = sessionOrders.reduce((sum, o) => sum + orderTotal(o.items), 0);
@@ -1092,8 +1100,12 @@ function buildSessionHTML(sessionOrders, icon, label) {
 
   const orderCards = groupOrder.map(name => {
     const g = grouped[name];
+    const isAdminUser = name.toLowerCase() === adminName.toLowerCase();
+    // Admin's snack cost is shared (already in snackPool), so exclude from their own line
+    // Regular users keep their own snack cost + share of admin snack pool
+    const ownSnacks = isAdminUser ? 0 : snackCategoryTotal(g.items);
     const beverages = nonSnackTotal(g.items);
-    const finalTotal = beverages + snackShare;
+    const finalTotal = beverages + ownSnacks + snackShare;
     const snackRow = snackPool > 0
       ? `<div class="order-total-row" style="opacity:0.65;font-weight:400;">Snack share: <span>₹${snackShare}</span></div>`
       : '';

@@ -62,7 +62,8 @@ app.post('/api/login', async (req, res) => {
   const clean = name.trim();
   try {
     await pool.query('INSERT INTO users (name) VALUES ($1) ON CONFLICT (name) DO NOTHING', [clean]);
-    res.json({ success: true, name: clean, isAdmin: clean.toLowerCase() === ADMIN_NAME });
+    const adminFlag = clean.toLowerCase() === ADMIN_NAME;
+    res.json({ success: true, name: clean, isAdmin: adminFlag, adminName: ADMIN_NAME });
   } catch (e) {
     res.status(500).json({ error: 'DB error' });
   }
