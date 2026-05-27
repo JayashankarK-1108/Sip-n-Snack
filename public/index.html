@@ -1084,7 +1084,7 @@ function buildSessionHTML(sessionOrders, icon, label) {
   const snackPool = sessionOrders
     .filter(o => o.name.toLowerCase() === adminName.toLowerCase())
     .reduce((sum, o) => sum + snackCategoryTotal(o.items), 0);
-  const userCount = groupOrder.length;
+  const userCount = groupOrder.filter(n => n.toLowerCase() !== adminName.toLowerCase()).length;
   const snackShare = userCount > 0 ? Math.ceil(snackPool / userCount) : 0;
   const sessionTotal = sessionOrders.reduce((sum, o) => sum + orderTotal(o.items), 0);
 
@@ -1200,7 +1200,8 @@ async function loadMyOrders() {
         const pool = allOrders
           .filter(o => o.name.toLowerCase() === adminName.toLowerCase())
           .reduce((sum, o) => sum + snackCategoryTotal(o.items), 0);
-        const users = [...new Set(allOrders.map(o => o.name))].length;
+        const users = [...new Set(allOrders.map(o => o.name))]
+          .filter(n => n.toLowerCase() !== adminName.toLowerCase()).length;
         dateSnackShare[date] = users > 0 ? Math.ceil(pool / users) : 0;
       } catch(e) { dateSnackShare[date] = 0; }
     }));
