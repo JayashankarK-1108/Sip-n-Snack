@@ -631,6 +631,57 @@
     .week-summary-card h3 { font-family: 'Playfair Display', serif; font-size: 1rem; color: var(--gold); margin-bottom: 0.85rem; }
     .week-summary-row { display: flex; justify-content: space-between; font-size: 0.875rem; margin-bottom: 0.5rem; opacity: 0.85; }
     .week-summary-row.total { border-top: 1px solid rgba(255,255,255,0.15); padding-top: 0.6rem; margin-top: 0.4rem; font-weight: 700; font-size: 1rem; opacity: 1; }
+
+    /* ── Payment action buttons (user view) ── */
+    .week-payment-actions { display: flex; gap: 0.75rem; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.12); }
+    .btn-make-payment {
+      flex: 1; background: #c0392b; color: #fff; border: none;
+      padding: 0.65rem 1rem; border-radius: 10px;
+      font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-make-payment:hover { background: #a93226; }
+    .btn-make-payment.faint { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.3); cursor: default; pointer-events: none; }
+    .btn-paid-status {
+      flex: 1; background: transparent;
+      border: 1.5px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.35);
+      padding: 0.65rem 1rem; border-radius: 10px;
+      font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 600; cursor: default;
+    }
+    .btn-paid-status.confirmed { border-color: var(--sage); color: var(--sage); background: rgba(122,158,126,0.15); }
+
+    /* ── Admin payments view ── */
+    .admin-payments-summary {
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--card-bg); border-radius: 10px; padding: 0.75rem 1.1rem;
+      margin-bottom: 1rem; font-size: 0.85rem; color: var(--muted);
+      border: 1px solid rgba(107,61,46,0.12);
+    }
+    .admin-payments-summary strong { color: var(--coffee); }
+    .payment-users-list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .payment-user-row {
+      background: var(--card-bg); border-radius: 14px; padding: 1rem 1.25rem;
+      box-shadow: 0 2px 12px var(--shadow); display: flex; align-items: center;
+      justify-content: space-between; gap: 1rem;
+      border-left: 4px solid var(--caramel); transition: border-color 0.3s, opacity 0.3s;
+    }
+    .payment-user-row.is-paid { border-left-color: var(--sage); opacity: 0.75; }
+    .payment-user-info { flex: 1; min-width: 0; }
+    .payment-user-name { font-weight: 700; font-size: 0.95rem; color: var(--espresso); }
+    .payment-user-breakdown { font-size: 0.78rem; color: var(--muted); margin-top: 0.2rem; }
+    .payment-user-paid-info { font-size: 0.75rem; color: var(--sage); margin-top: 0.2rem; font-weight: 600; }
+    .payment-user-right { display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem; flex-shrink: 0; }
+    .payment-user-total { font-weight: 700; font-size: 1.05rem; color: var(--caramel); }
+    .payment-user-total.zero { color: var(--muted); font-weight: 400; }
+    .btn-mark-paid {
+      background: var(--caramel); color: #fff; border: none;
+      padding: 0.45rem 1rem; border-radius: 8px;
+      font-family: 'DM Sans', sans-serif; font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; transition: all 0.25s; white-space: nowrap; min-width: 90px;
+    }
+    .btn-mark-paid:hover:not(:disabled) { background: var(--sage); }
+    .btn-mark-paid.paid { background: var(--sage); cursor: default; }
+    .btn-mark-paid:disabled { opacity: 0.85; cursor: default; }
     .week-summary-row.total span { color: var(--gold); font-size: 1.15rem; }
 
     .sessions-grid {
@@ -1029,7 +1080,8 @@ function setUser(name, animated, adminFlag) {
   document.getElementById('navTabs').style.display = 'flex';
   document.getElementById('greetingName').textContent = name;
   document.getElementById('tabRecords').style.display = isAdmin ? '' : 'none';
-  document.getElementById('tabMyPayments').style.display = isAdmin ? 'none' : '';
+  document.getElementById('tabMyPayments').style.display = '';
+  document.getElementById('tabMyPayments').textContent = isAdmin ? '💰 Payments' : '💰 My Payments';
 
   showPanel('panelOrder');
   document.getElementById('panelLogin').style.display = 'none';
@@ -1428,20 +1480,23 @@ function fmtDate(d) {
 
 async function loadMyPayments() {
   if (!currentUser) return;
+  if (isAdmin) await loadAdminPayments();
+  else await loadUserPayments();
+}
+
+// ── User Payments View ────────────────────────────────
+async function loadUserPayments() {
   const content = document.getElementById('myPaymentsContent');
   content.innerHTML = '<div class="loading">Loading...</div>';
 
-  const { from, to, monday, friday } = getWeekRange(paymentsWeekOffset);
+  const { from, to, monday } = getWeekRange(paymentsWeekOffset);
+  const weekStart = from;
   const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 
   try {
-    // Fetch user orders and all session orders for the week in parallel
-    const [userRes] = await Promise.all([
-      fetch(`${API}/api/orders/user/${encodeURIComponent(currentUser)}/range?from=${from}&to=${to}`)
-    ]);
+    const userRes = await fetch(`${API}/api/orders/user/${encodeURIComponent(currentUser)}/range?from=${from}&to=${to}`);
     const userOrders = await userRes.json();
 
-    // Get unique dates in range that have orders
     const allDates = [];
     for (let i = 0; i < 5; i++) {
       const d = new Date(monday);
@@ -1449,15 +1504,13 @@ async function loadMyPayments() {
       allDates.push(d.toISOString().split('T')[0]);
     }
 
-    // Fetch snack share per date
     const dateSnackShare = {};
     await Promise.all(allDates.map(async date => {
       try {
         const r = await fetch(`${API}/api/orders/date/${date}`);
         if (!r.ok) return;
         const all = await r.json();
-        const pool = all
-          .filter(o => o.name.toLowerCase() === adminName.toLowerCase())
+        const pool = all.filter(o => o.name.toLowerCase() === adminName.toLowerCase())
           .reduce((sum, o) => sum + snackCategoryTotal(o.items), 0);
         const users = [...new Set(all.map(o => o.name))]
           .filter(n => n.toLowerCase() !== adminName.toLowerCase()).length;
@@ -1465,7 +1518,13 @@ async function loadMyPayments() {
       } catch(e) { dateSnackShare[date] = 0; }
     }));
 
-    // Group user orders by date then by session
+    // Fetch payment status for this week
+    let paymentStatus = 'unpaid', paidAt = null;
+    try {
+      const sr = await fetch(`${API}/api/payments/status/${encodeURIComponent(currentUser)}/${weekStart}`);
+      if (sr.ok) { const sd = await sr.json(); paymentStatus = sd.status; paidAt = sd.paidAt; }
+    } catch(e) {}
+
     const byDate = {};
     userOrders.forEach(o => {
       if (!byDate[o.date]) byDate[o.date] = { morning: [], evening: [] };
@@ -1478,32 +1537,20 @@ async function loadMyPayments() {
     const dayCards = allDates.map((date, i) => {
       const dayData = byDate[date];
       const share = dateSnackShare[date] || 0;
-
-      if (!dayData) {
-        return `
-          <div class="payment-day-card no-order">
-            <div>
-              <div class="payment-day-name">${DAYS[i]}</div>
-              <div class="payment-day-date">${fmtDate(date)}</div>
-            </div>
-            <div class="payment-day-total zero">No order</div>
-          </div>`;
-      }
-
+      if (!dayData) return `
+        <div class="payment-day-card no-order">
+          <div><div class="payment-day-name">${DAYS[i]}</div><div class="payment-day-date">${fmtDate(date)}</div></div>
+          <div class="payment-day-total zero">No order</div>
+        </div>`;
       const morningTotal = dayData.morning.reduce((s, o) => s + orderTotal(o.items), 0);
       const eveningTotal = dayData.evening.reduce((s, o) => s + orderTotal(o.items), 0);
-      const daySnack = (dayData.morning.length > 0 || dayData.evening.length > 0) ? share : 0;
+      const daySnack = share;
       const dayTotal = morningTotal + eveningTotal + daySnack;
-
-      weekMorning += morningTotal;
-      weekEvening += eveningTotal;
-      weekSnack += daySnack;
-
+      weekMorning += morningTotal; weekEvening += eveningTotal; weekSnack += daySnack;
       const breakdown = [];
       if (morningTotal > 0) breakdown.push(`🌅 Morning ₹${morningTotal}`);
       if (eveningTotal > 0) breakdown.push(`🌆 Evening ₹${eveningTotal}`);
       if (daySnack > 0) breakdown.push(`🍿 Snack share ₹${daySnack}`);
-
       return `
         <div class="payment-day-card">
           <div>
@@ -1516,17 +1563,17 @@ async function loadMyPayments() {
     }).join('');
 
     const weekTotal = weekMorning + weekEvening + weekSnack;
-
     const weekLabel = `${fmtDate(from)} – ${fmtDate(to)}`;
     const isCurrentWeek = paymentsWeekOffset === 0;
+    const isPaid = paymentStatus === 'paid';
+    const paidDateStr = isPaid && paidAt
+      ? new Date(paidAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+      : '';
 
     content.innerHTML = `
       <div class="week-nav">
         <button class="btn-week-nav" onclick="changeWeek(-1)">◀</button>
-        <div class="week-nav-label">
-          Week of ${weekLabel}
-          <span>${isCurrentWeek ? 'Current week' : ''}</span>
-        </div>
+        <div class="week-nav-label">Week of ${weekLabel}<span>${isCurrentWeek ? 'Current week' : ''}</span></div>
         <button class="btn-week-nav" onclick="changeWeek(1)" ${isCurrentWeek ? 'disabled style="opacity:0.3;cursor:default;"' : ''}>▶</button>
       </div>
       ${dayCards}
@@ -1536,6 +1583,11 @@ async function loadMyPayments() {
         ${weekEvening > 0 ? `<div class="week-summary-row"><span>🌆 Evening Total</span><span>₹${weekEvening}</span></div>` : ''}
         ${weekSnack > 0 ? `<div class="week-summary-row"><span>🍿 Snack Share Total</span><span>₹${weekSnack}</span></div>` : ''}
         <div class="week-summary-row total"><span>Total Payable (Fri EOD)</span><span>₹${weekTotal}</span></div>
+        <div class="week-payment-actions">
+          <button class="btn-make-payment ${isPaid ? 'faint' : ''}">💳 Make Payment</button>
+          <button class="btn-paid-status ${isPaid ? 'confirmed' : ''}" disabled>${isPaid ? '✓ Paid' : 'Paid'}</button>
+        </div>
+        ${isPaid ? `<div style="font-size:0.75rem;opacity:0.6;text-align:center;margin-top:0.5rem;">Confirmed by Admin · ${paidDateStr}</div>` : ''}
       </div>`;
 
   } catch(e) {
@@ -1546,7 +1598,114 @@ async function loadMyPayments() {
 function changeWeek(dir) {
   if (paymentsWeekOffset === 0 && dir === 1) return;
   paymentsWeekOffset += dir;
-  loadMyPayments();
+  loadUserPayments();
+}
+
+// ── Admin Payments View ───────────────────────────────
+let adminPaymentsWeekOffset = 0;
+
+function changeAdminWeek(dir) {
+  if (adminPaymentsWeekOffset === 0 && dir === 1) return;
+  adminPaymentsWeekOffset += dir;
+  loadAdminPayments();
+}
+
+async function loadAdminPayments() {
+  const content = document.getElementById('myPaymentsContent');
+  content.innerHTML = '<div class="loading">Loading...</div>';
+
+  const { from, to } = getWeekRange(adminPaymentsWeekOffset);
+  const weekStart = from;
+  const isCurrentWeek = adminPaymentsWeekOffset === 0;
+  const weekLabel = `${fmtDate(from)} – ${fmtDate(to)}`;
+
+  const navHTML = `
+    <div class="week-nav">
+      <button class="btn-week-nav" onclick="changeAdminWeek(-1)">◀</button>
+      <div class="week-nav-label">Week of ${weekLabel}<span>${isCurrentWeek ? 'Current week' : ''}</span></div>
+      <button class="btn-week-nav" onclick="changeAdminWeek(1)" ${isCurrentWeek ? 'disabled style="opacity:0.3;cursor:default;"' : ''}>▶</button>
+    </div>`;
+
+  try {
+    const res = await fetch(`${API}/api/payments/week/${weekStart}`, {
+      headers: { 'x-user-name': currentUser }
+    });
+    if (!res.ok) throw new Error();
+    const { users } = await res.json();
+
+    if (!users.length) {
+      content.innerHTML = navHTML + `<div class="no-orders"><div class="icon">🍃</div><p>No users found.</p></div>`;
+      return;
+    }
+
+    const paidCount = users.filter(u => u.status === 'paid').length;
+    const outstanding = users.filter(u => u.status !== 'paid').reduce((s, u) => s + u.total, 0);
+
+    const userRows = users.map(u => {
+      const isPaid = u.status === 'paid';
+      const paidDateStr = isPaid && u.paidAt
+        ? new Date(u.paidAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '';
+      const breakdown = [
+        u.morning > 0 ? `🌅 ₹${u.morning}` : '',
+        u.evening > 0 ? `🌆 ₹${u.evening}` : '',
+        u.snack > 0 ? `🍿 ₹${u.snack}` : ''
+      ].filter(Boolean).join(' · ') || 'No orders this week';
+
+      return `
+        <div class="payment-user-row ${isPaid ? 'is-paid' : ''}" id="prow-${u.userName.replace(/\s+/g,'_')}">
+          <div class="payment-user-info">
+            <div class="payment-user-name">👤 ${u.userName}</div>
+            <div class="payment-user-breakdown">${breakdown}</div>
+            ${isPaid ? `<div class="payment-user-paid-info">✓ Paid · ${paidDateStr}</div>` : ''}
+          </div>
+          <div class="payment-user-right">
+            <div class="payment-user-total ${u.total === 0 ? 'zero' : ''}">₹${u.total}</div>
+            <button
+              class="btn-mark-paid ${isPaid ? 'paid' : ''}"
+              id="paybtn-${u.userName.replace(/\s+/g,'_')}"
+              onclick="markPaid('${u.userName.replace(/'/g,"\\'")}','${weekStart}')"
+              ${isPaid ? 'disabled' : ''}
+            >${isPaid ? '✓ Paid' : 'Mark Paid'}</button>
+          </div>
+        </div>`;
+    }).join('');
+
+    const weekTotal = users.reduce((s, u) => s + u.total, 0);
+    content.innerHTML = `
+      ${navHTML}
+      <div class="admin-payments-summary">
+        <span>${paidCount} of ${users.length} paid</span>
+        <span>Outstanding: <strong>₹${outstanding}</strong> · Week Total: <strong>₹${weekTotal}</strong></span>
+      </div>
+      <div class="payment-users-list">${userRows}</div>`;
+
+  } catch(e) {
+    content.innerHTML = navHTML + `<div class="no-orders"><div class="icon">⚠️</div><p>Could not load data.</p></div>`;
+  }
+}
+
+async function markPaid(userName, weekStart) {
+  const safeId = userName.replace(/\s+/g, '_');
+  const btn = document.getElementById(`paybtn-${safeId}`);
+  const row = document.getElementById(`prow-${safeId}`);
+  if (!btn || btn.disabled) return;
+  const orig = btn.textContent;
+  btn.textContent = 'Saving...'; btn.disabled = true;
+  try {
+    const res = await fetch(`${API}/api/payments/mark-paid`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-user-name': currentUser },
+      body: JSON.stringify({ userName, weekStart })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error();
+    btn.textContent = '✓ Paid'; btn.classList.add('paid');
+    if (row) row.classList.add('is-paid');
+    showToast(`${userName} marked as paid`, 'success');
+  } catch(e) {
+    showToast('Failed to mark as paid.', 'error');
+    btn.textContent = orig; btn.disabled = false;
+  }
 }
 
 // ── Toast ──────────────────────────────────────────────

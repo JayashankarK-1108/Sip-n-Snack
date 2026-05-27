@@ -36,6 +36,16 @@ async function initDB() {
       name TEXT UNIQUE NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS week_payments (
+      id SERIAL PRIMARY KEY,
+      user_name TEXT NOT NULL,
+      week_start TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'unpaid',
+      paid_at TIMESTAMP,
+      paid_by TEXT,
+      UNIQUE (user_name, week_start)
+    );
   `);
   console.log('☕ Database ready');
 }
@@ -208,6 +218,139 @@ app.delete('/api/orders/:id', async (req, res) => {
   try {
     await pool.query('DELETE FROM orders WHERE id = $1', [req.params.id]);
     res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+// ── Payment endpoints ────────────────────────────────────
+
+// Prices & snack IDs mirroring the frontend MENU
+const PRICES = {
+  tea: 15, coffee: 15, lemon_tea: 17, honey_tea: 18, buttermilk: 20,
+  biscuits: 5, peanuts: 10, samosa: 15, egg_puffs: 15, paneer_puffs: 15,
+  mc_coffee: 15, mc_tea: 15, mc_buttermilk: 20, mc_samosa: 15
+};
+const SNACK_IDS = new Set(['biscuits', 'peanuts', 'samosa', 'egg_puffs', 'paneer_puffs']);
+
+function srvItemPrice(id) { return PRICES[id] || 0; }
+function srvSnackTotal(items) {
+  return items.reduce((s, i) => SNACK_IDS.has(i.id) ? s + srvItemPrice(i.id) * i.qty : s, 0);
+}
+function srvNonSnackTotal(items) {
+  return items.reduce((s, i) => !SNACK_IDS.has(i.id) ? s + srvItemPrice(i.id) * i.qty : s, 0);
+}
+function srvParseHour(timeStr) {
+  const [timePart, period] = timeStr.toLowerCase().split(' ');
+  let [h] = timePart.split(':').map(Number);
+  if (period === 'pm' && h !== 12) h += 12;
+  if (period === 'am' && h === 12) h = 0;
+  return h;
+}
+
+// GET /api/payments/week/:weekStart — admin only, returns all users totals + payment status
+app.get('/api/payments/week/:weekStart', async (req, res) => {
+  if (!isAdminRequest(req)) return res.status(403).json({ error: 'Admin only' });
+  const { weekStart } = req.params;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart)) return res.status(400).json({ error: 'Invalid date' });
+
+  try {
+    const monday = new Date(weekStart + 'T00:00:00Z');
+    const dates = Array.from({ length: 5 }, (_, i) => {
+      const d = new Date(monday);
+      d.setUTCDate(monday.getUTCDate() + i);
+      return d.toISOString().split('T')[0];
+    });
+    const weekEnd = dates[4];
+
+    const { rows: userRows } = await pool.query(
+      'SELECT name FROM users WHERE LOWER(name) != $1 ORDER BY name ASC', [ADMIN_NAME]
+    );
+    const { rows: allOrders } = await pool.query(
+      'SELECT name, date, time, items FROM orders WHERE date >= $1 AND date <= $2',
+      [weekStart, weekEnd]
+    );
+    const parsed = allOrders.map(o => ({ ...o, items: JSON.parse(o.items) }));
+
+    // Snack share per date
+    const dateSnackShare = {};
+    for (const date of dates) {
+      const dayOrders = parsed.filter(o => o.date === date);
+      const pool2 = dayOrders.filter(o => o.name.toLowerCase() === ADMIN_NAME)
+        .reduce((s, o) => s + srvSnackTotal(o.items), 0);
+      const uCount = [...new Set(dayOrders.map(o => o.name))]
+        .filter(n => n.toLowerCase() !== ADMIN_NAME).length;
+      dateSnackShare[date] = uCount > 0 ? Math.ceil(pool2 / uCount) : 0;
+    }
+
+    // Per-user totals
+    const { rows: payRows } = await pool.query(
+      'SELECT user_name, status, paid_at, paid_by FROM week_payments WHERE week_start = $1', [weekStart]
+    );
+    const payMap = {};
+    payRows.forEach(p => { payMap[p.user_name] = p; });
+
+    const result = userRows.map(({ name }) => {
+      const userOrders = parsed.filter(o => o.name === name);
+      let morning = 0, evening = 0, snack = 0;
+      for (const date of dates) {
+        const dayUser = userOrders.filter(o => o.date === date);
+        if (dayUser.length === 0) continue;
+        snack += dateSnackShare[date] || 0;
+        dayUser.forEach(o => {
+          const total = srvNonSnackTotal(o.items) + srvSnackTotal(o.items);
+          if (srvParseHour(o.time) < 16) morning += total;
+          else evening += total;
+        });
+      }
+      return {
+        userName: name,
+        morning, evening, snack,
+        total: morning + evening + snack,
+        status: payMap[name]?.status || 'unpaid',
+        paidAt: payMap[name]?.paid_at || null,
+        paidBy: payMap[name]?.paid_by || null
+      };
+    });
+
+    res.json({ weekStart, weekEnd, users: result });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+// POST /api/payments/mark-paid — admin only
+app.post('/api/payments/mark-paid', async (req, res) => {
+  if (!isAdminRequest(req)) return res.status(403).json({ error: 'Admin only' });
+  const { userName, weekStart } = req.body;
+  if (!userName || !weekStart) return res.status(400).json({ error: 'userName and weekStart required' });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart)) return res.status(400).json({ error: 'Invalid date' });
+  try {
+    await pool.query(
+      `INSERT INTO week_payments (user_name, week_start, status, paid_at, paid_by)
+       VALUES ($1, $2, 'paid', NOW(), $3)
+       ON CONFLICT (user_name, week_start)
+       DO UPDATE SET status = 'paid', paid_at = NOW(), paid_by = $3`,
+      [userName, weekStart, req.headers['x-user-name']]
+    );
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+// GET /api/payments/status/:userName/:weekStart — public
+app.get('/api/payments/status/:userName/:weekStart', async (req, res) => {
+  const { userName, weekStart } = req.params;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart)) return res.status(400).json({ error: 'Invalid date' });
+  try {
+    const { rows } = await pool.query(
+      'SELECT status, paid_at, paid_by FROM week_payments WHERE user_name = $1 AND week_start = $2',
+      [userName, weekStart]
+    );
+    if (rows.length === 0) return res.json({ status: 'unpaid', paidAt: null });
+    res.json({ status: rows[0].status, paidAt: rows[0].paid_at, paidBy: rows[0].paid_by });
   } catch (e) {
     res.status(500).json({ error: 'DB error' });
   }
