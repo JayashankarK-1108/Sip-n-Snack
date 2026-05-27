@@ -6,6 +6,7 @@ const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const ADMIN_NAME = (process.env.ADMIN_NAME || 'Admin').toLowerCase();
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
 function isAdminRequest(req) {
   return (req.headers['x-user-name'] || '').toLowerCase() === ADMIN_NAME;
@@ -64,6 +65,20 @@ app.post('/api/login', async (req, res) => {
     await pool.query('INSERT INTO users (name) VALUES ($1) ON CONFLICT (name) DO NOTHING', [clean]);
     const adminFlag = clean.toLowerCase() === ADMIN_NAME;
     res.json({ success: true, name: clean, isAdmin: adminFlag, adminName: ADMIN_NAME });
+  } catch (e) {
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+// Admin login with password
+app.post('/api/admin-login', async (req, res) => {
+  const { password } = req.body;
+  if (!password) return res.status(400).json({ error: 'Password required' });
+  if (password !== ADMIN_PASSWORD) return res.status(401).json({ error: 'Invalid password' });
+  const clean = ADMIN_NAME.charAt(0).toUpperCase() + ADMIN_NAME.slice(1);
+  try {
+    await pool.query('INSERT INTO users (name) VALUES ($1) ON CONFLICT (name) DO NOTHING', [clean]);
+    res.json({ success: true, name: clean, isAdmin: true, adminName: ADMIN_NAME });
   } catch (e) {
     res.status(500).json({ error: 'DB error' });
   }

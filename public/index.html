@@ -147,6 +147,77 @@
       margin-bottom: 0.5rem;
     }
     .login-wrap p { color: var(--muted); margin-bottom: 2rem; font-size: 0.95rem; }
+    .btn-admin-login {
+      width: 100%;
+      margin-top: 1rem;
+      padding: 0.7rem;
+      background: transparent;
+      border: 1.5px solid rgba(107, 61, 46, 0.25);
+      border-radius: 10px;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-admin-login:hover { border-color: var(--caramel); color: var(--coffee); background: rgba(212,145,90,0.06); }
+    .admin-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(44,26,14,0.5);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .admin-modal-overlay.open { display: flex; }
+    .admin-modal {
+      background: var(--warm-white);
+      border-radius: 20px;
+      padding: 2rem;
+      width: 100%;
+      max-width: 360px;
+      box-shadow: 0 20px 60px rgba(44,26,14,0.3);
+      animation: fadeUp 0.3s ease;
+    }
+    .admin-modal h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.3rem;
+      color: var(--espresso);
+      margin-bottom: 0.4rem;
+    }
+    .admin-modal p { font-size: 0.85rem; color: var(--muted); margin-bottom: 1.25rem; }
+    .admin-modal .input-group { flex-direction: column; gap: 0.75rem; }
+    .admin-modal input[type="password"] {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1.5px solid rgba(107,61,46,0.2);
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      background: #fff;
+      color: var(--espresso);
+      outline: none;
+    }
+    .admin-modal input[type="password"]:focus { border-color: var(--caramel); }
+    .admin-modal-btns { display: flex; gap: 0.75rem; margin-top: 0.75rem; }
+    .admin-modal-btns .btn-primary { flex: 1; }
+    .btn-cancel {
+      flex: 1;
+      background: transparent;
+      border: 1.5px solid rgba(107,61,46,0.2);
+      border-radius: 10px;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0.75rem;
+      transition: all 0.2s;
+    }
+    .btn-cancel:hover { border-color: var(--coffee); color: var(--coffee); }
     .login-card {
       background: var(--card-bg);
       border-radius: 20px;
@@ -730,6 +801,20 @@
           <input type="text" id="nameInput" placeholder="Your name..." maxlength="40" />
           <button class="btn-primary" onclick="login()">Let's Go →</button>
         </div>
+        <button class="btn-admin-login" onclick="openAdminLogin()">🔐 Log in as Admin</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Password Modal -->
+  <div class="admin-modal-overlay" id="adminLoginOverlay">
+    <div class="admin-modal">
+      <h3>🔐 Admin Login</h3>
+      <p>Enter the admin password to continue.</p>
+      <input type="password" id="adminPasswordInput" placeholder="Password..." />
+      <div class="admin-modal-btns">
+        <button class="btn-cancel" onclick="closeAdminLogin()">Cancel</button>
+        <button class="btn-primary" onclick="submitAdminLogin()">Login</button>
       </div>
     </div>
   </div>
@@ -1259,6 +1344,43 @@ function showToast(msg, type = '') {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
 }
+
+// ── Admin Login ──────────────────────────────────────────
+function openAdminLogin() {
+  document.getElementById('adminPasswordInput').value = '';
+  document.getElementById('adminLoginOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('adminPasswordInput').focus(), 100);
+}
+
+function closeAdminLogin() {
+  document.getElementById('adminLoginOverlay').classList.remove('open');
+}
+
+async function submitAdminLogin() {
+  const password = document.getElementById('adminPasswordInput').value;
+  if (!password) return showToast('Please enter the password.', 'error');
+  try {
+    const res = await fetch(`${API}/api/admin-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password })
+    });
+    const data = await res.json();
+    if (!res.ok) return showToast('Incorrect password.', 'error');
+    closeAdminLogin();
+    localStorage.setItem('sipsnack_user', data.name);
+    localStorage.setItem('sipsnack_admin', '1');
+    localStorage.setItem('sipsnack_adminname', data.adminName || '');
+    adminName = data.adminName || '';
+    setUser(data.name, true, true);
+  } catch(e) {
+    showToast('Connection error.', 'error');
+  }
+}
+
+document.getElementById('adminPasswordInput')?.addEventListener('keydown', e => {
+  if (e.key === 'Enter') submitAdminLogin();
+});
 
 // ── Disclaimer ──────────────────────────────────────────
 function openDisclaimer() {
