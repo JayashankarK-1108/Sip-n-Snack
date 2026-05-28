@@ -264,14 +264,17 @@ app.get('/api/payments/week/:weekStart', async (req, res) => {
     });
     const weekEnd = dates[4];
 
-    const { rows: userRows } = await pool.query(
-      'SELECT name FROM users WHERE LOWER(name) != $1 ORDER BY name ASC', [ADMIN_NAME]
-    );
     const { rows: allOrders } = await pool.query(
       'SELECT name, date, time, items FROM orders WHERE date >= $1 AND date <= $2',
       [weekStart, weekEnd]
     );
     const parsed = allOrders.map(o => ({ ...o, items: JSON.parse(o.items) }));
+
+    // Only include users who ordered this week (excluding admin)
+    const weekUserNames = [...new Set(
+      parsed.filter(o => o.name.toLowerCase() !== ADMIN_NAME).map(o => o.name)
+    )].sort();
+    const userRows = weekUserNames.map(name => ({ name }));
 
     // Snack share per date
     const dateSnackShare = {};
