@@ -7,6 +7,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const ADMIN_NAME = (process.env.ADMIN_NAME || 'Admin').toLowerCase();
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+const ADMIN_UPI = process.env.ADMIN_UPI || '';
 
 function isAdminRequest(req) {
   return (req.headers['x-user-name'] || '').toLowerCase() === ADMIN_NAME;
@@ -74,7 +75,7 @@ app.post('/api/login', async (req, res) => {
   try {
     await pool.query('INSERT INTO users (name) VALUES ($1) ON CONFLICT (name) DO NOTHING', [clean]);
     const adminFlag = clean.toLowerCase() === ADMIN_NAME;
-    res.json({ success: true, name: clean, isAdmin: adminFlag, adminName: ADMIN_NAME });
+    res.json({ success: true, name: clean, isAdmin: adminFlag, adminName: ADMIN_NAME, upiId: ADMIN_UPI });
   } catch (e) {
     res.status(500).json({ error: 'DB error' });
   }
@@ -88,7 +89,7 @@ app.post('/api/admin-login', async (req, res) => {
   const clean = ADMIN_NAME.charAt(0).toUpperCase() + ADMIN_NAME.slice(1);
   try {
     await pool.query('INSERT INTO users (name) VALUES ($1) ON CONFLICT (name) DO NOTHING', [clean]);
-    res.json({ success: true, name: clean, isAdmin: true, adminName: ADMIN_NAME });
+    res.json({ success: true, name: clean, isAdmin: true, adminName: ADMIN_NAME, upiId: ADMIN_UPI });
   } catch (e) {
     res.status(500).json({ error: 'DB error' });
   }

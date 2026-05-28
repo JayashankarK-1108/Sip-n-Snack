@@ -639,6 +639,7 @@
       padding: 0.65rem 1rem; border-radius: 10px;
       font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 600;
       cursor: pointer; transition: all 0.2s;
+      display: block; text-align: center; text-decoration: none;
     }
     .btn-make-payment:hover { background: #a93226; }
     .btn-make-payment.faint { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.3); cursor: default; pointer-events: none; }
@@ -987,6 +988,7 @@
 let currentUser = null;
 let isAdmin = false;
 let adminName = '';
+let adminUpi = '';
 const API = '';
 
 const MENU = [
@@ -1040,6 +1042,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const saved = localStorage.getItem('sipsnack_user');
   const savedAdmin = localStorage.getItem('sipsnack_admin') === '1';
   adminName = localStorage.getItem('sipsnack_adminname') || '';
+  adminUpi = localStorage.getItem('sipsnack_upi') || '';
   if (saved) setUser(saved, false, savedAdmin);
 
   buildMenu();
@@ -1065,7 +1068,9 @@ async function login() {
     localStorage.setItem('sipsnack_user', data.name);
     localStorage.setItem('sipsnack_admin', data.isAdmin ? '1' : '0');
     localStorage.setItem('sipsnack_adminname', data.adminName || '');
+    localStorage.setItem('sipsnack_upi', data.upiId || '');
     adminName = data.adminName || '';
+    adminUpi = data.upiId || '';
     setUser(data.name, true, data.isAdmin);
   } catch(e) {
     showToast('Connection error, please try again.', 'error');
@@ -1092,9 +1097,11 @@ function logout() {
   localStorage.removeItem('sipsnack_user');
   localStorage.removeItem('sipsnack_admin');
   localStorage.removeItem('sipsnack_adminname');
+  localStorage.removeItem('sipsnack_upi');
   currentUser = null;
   isAdmin = false;
   adminName = '';
+  adminUpi = '';
   selected = {};
   document.getElementById('headerUser').classList.remove('visible');
   document.getElementById('navTabs').style.display = 'none';
@@ -1584,7 +1591,10 @@ async function loadUserPayments() {
         ${weekSnack > 0 ? `<div class="week-summary-row"><span>🍿 Snack Share Total</span><span>₹${weekSnack}</span></div>` : ''}
         <div class="week-summary-row total"><span>Total Payable (Fri EOD)</span><span>₹${weekTotal}</span></div>
         <div class="week-payment-actions">
-          <button class="btn-make-payment ${isPaid ? 'faint' : ''}">💳 Make Payment</button>
+          ${adminUpi
+            ? `<a href="upi://pay?pa=${encodeURIComponent(adminUpi)}&pn=SipNSnack&am=${weekTotal}&cu=INR&tn=Sip%20n%20Snack%20Break%20Payment" class="btn-make-payment ${isPaid ? 'faint' : ''}">💳 Make Payment</a>`
+            : `<button class="btn-make-payment" onclick="showToast('UPI not configured — contact Admin.','error')">💳 Make Payment</button>`
+          }
           <button class="btn-paid-status ${isPaid ? 'confirmed' : ''}" disabled>${isPaid ? '✓ Paid' : 'Paid'}</button>
         </div>
         ${isPaid ? `<div style="font-size:0.75rem;opacity:0.6;text-align:center;margin-top:0.5rem;">Confirmed by Admin · ${paidDateStr}</div>` : ''}
@@ -1746,7 +1756,9 @@ async function submitAdminLogin() {
     localStorage.setItem('sipsnack_user', data.name);
     localStorage.setItem('sipsnack_admin', '1');
     localStorage.setItem('sipsnack_adminname', data.adminName || '');
+    localStorage.setItem('sipsnack_upi', data.upiId || '');
     adminName = data.adminName || '';
+    adminUpi = data.upiId || '';
     setUser(data.name, true, true);
   } catch(e) {
     showToast('Connection error.', 'error');
