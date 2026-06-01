@@ -230,7 +230,8 @@ app.delete('/api/orders/:id', async (req, res) => {
 const PRICES = {
   tea: 15, coffee: 15, lemon_tea: 17, honey_tea: 18, buttermilk: 20,
   biscuits: 5, peanuts: 10, samosa: 15, egg_puffs: 15, paneer_puffs: 15,
-  mc_coffee: 15, mc_tea: 15, mc_buttermilk: 20, mc_samosa: 15
+  mc_coffee: 24, mc_tea: 24, mc_buttermilk: 22, mc_milk: 23, mc_samosa: 28,
+  mc_boost: 30, mc_horlicks: 30, mc_badam: 30, mc_cookies: 15, mc_bajji: 15
 };
 const SNACK_IDS = new Set(['biscuits', 'peanuts', 'samosa', 'egg_puffs', 'paneer_puffs']);
 
