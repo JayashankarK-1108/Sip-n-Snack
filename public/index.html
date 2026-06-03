@@ -893,7 +893,7 @@
 
 <nav class="nav-tabs" id="navTabs" style="display:none;">
   <button class="tab-btn active" onclick="showTab('order')" id="tabOrder">🛒 Order</button>
-  <button class="tab-btn" onclick="showTab('records')" id="tabRecords">📋 Records</button>
+  <button class="tab-btn" onclick="showTab('records')" id="tabRecords">👥 Team Order</button>
   <button class="tab-btn" onclick="showTab('myOrders')" id="tabMyOrders">👤 My Orders</button>
   <button class="tab-btn" onclick="showTab('myPayments')" id="tabMyPayments">💰 My Payments</button>
 </nav>
@@ -953,7 +953,7 @@
   <!-- RECORDS -->
   <div class="panel" id="panelRecords">
     <div class="records-header">
-      <h2>📋 Break Records</h2>
+      <h2>👥 Team Order</h2>
       <div class="date-picker-wrap">
         <input type="date" id="datePicker" onchange="loadRecords()" />
       </div>
@@ -1091,7 +1091,7 @@ function setUser(name, animated, adminFlag) {
   document.getElementById('headerUser').classList.add('visible');
   document.getElementById('navTabs').style.display = 'flex';
   document.getElementById('greetingName').textContent = name;
-  document.getElementById('tabRecords').style.display = isAdmin ? '' : 'none';
+  document.getElementById('tabRecords').style.display = '';
   document.getElementById('tabMyPayments').style.display = '';
   document.getElementById('tabMyPayments').textContent = isAdmin ? '💰 Payments' : '💰 My Payments';
 
