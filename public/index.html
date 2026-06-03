@@ -1474,16 +1474,17 @@ async function loadMyOrders() {
 let paymentsWeekOffset = 0; // 0 = current week, -1 = last week, etc.
 
 function getWeekRange(offset) {
-  const now = new Date();
-  // IST offset: +5:30
-  const ist = new Date(now.getTime() + (5.5 * 60 - now.getTimezoneOffset()) * 60000);
-  const day = ist.getDay(); // 0=Sun, 1=Mon ... 5=Fri, 6=Sat
-  const diffToMon = (day === 0 ? -6 : 1 - day);
-  const monday = new Date(ist);
-  monday.setDate(ist.getDate() + diffToMon + offset * 7);
+  // Get today's date in IST reliably, avoiding UTC conversion issues
+  const todayIST = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+  const [y, m, d] = todayIST.split('-').map(Number);
+  const today = new Date(y, m - 1, d);
+  const dow = today.getDay(); // 0=Sun,1=Mon...6=Sat
+  const diffToMon = dow === 0 ? -6 : 1 - dow;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + diffToMon + offset * 7);
   const friday = new Date(monday);
   friday.setDate(monday.getDate() + 4);
-  const fmt = d => d.toISOString().split('T')[0];
+  const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   return { from: fmt(monday), to: fmt(friday), monday, friday };
 }
 
