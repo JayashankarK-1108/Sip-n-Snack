@@ -1307,7 +1307,7 @@ function buildSessionHTML(sessionOrders, icon, label) {
     .filter(o => o.name.toLowerCase() === adminName.toLowerCase())
     .reduce((sum, o) => sum + snackCategoryTotal(o.items), 0);
   const userCount = groupOrder.filter(n => n.toLowerCase() !== adminName.toLowerCase()).length;
-  const snackShare = userCount > 0 ? Math.ceil(snackPool / userCount) : 0;
+  const snackShare = userCount > 0 ? Math.round((snackPool / userCount) / 0.5) * 0.5 : 0;
   const sessionTotal = sessionOrders.reduce((sum, o) => sum + orderTotal(o.items), 0);
 
   const summaryPills = Object.entries(itemSummary)
@@ -1423,7 +1423,7 @@ async function loadMyOrders() {
           .reduce((sum, o) => sum + snackCategoryTotal(o.items), 0);
         const users = [...new Set(allOrders.map(o => o.name))]
           .filter(n => n.toLowerCase() !== adminName.toLowerCase()).length;
-        dateSnackShare[date] = users > 0 ? Math.ceil(pool / users) : 0;
+        dateSnackShare[date] = users > 0 ? Math.round((pool / users) / 0.5) * 0.5 : 0;
       } catch(e) { dateSnackShare[date] = 0; }
     }));
 
@@ -1528,7 +1528,7 @@ async function loadUserPayments() {
           .reduce((sum, o) => sum + snackCategoryTotal(o.items), 0);
         const users = [...new Set(all.map(o => o.name))]
           .filter(n => n.toLowerCase() !== adminName.toLowerCase()).length;
-        dateSnackShare[date] = users > 0 ? Math.ceil(pool / users) : 0;
+        dateSnackShare[date] = users > 0 ? Math.round((pool / users) / 0.5) * 0.5 : 0;
       } catch(e) { dateSnackShare[date] = 0; }
     }));
 

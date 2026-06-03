@@ -285,7 +285,7 @@ app.get('/api/payments/week/:weekStart', async (req, res) => {
         .reduce((s, o) => s + srvSnackTotal(o.items), 0);
       const uCount = [...new Set(dayOrders.map(o => o.name))]
         .filter(n => n.toLowerCase() !== ADMIN_NAME).length;
-      dateSnackShare[date] = uCount > 0 ? Math.ceil(pool2 / uCount) : 0;
+      dateSnackShare[date] = uCount > 0 ? Math.round((pool2 / uCount) / 0.5) * 0.5 : 0;
     }
 
     // Per-user totals
