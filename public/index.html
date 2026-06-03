@@ -1512,12 +1512,11 @@ async function loadUserPayments() {
     const userRes = await fetch(`${API}/api/orders/user/${encodeURIComponent(currentUser)}/range?from=${from}&to=${to}`);
     const userOrders = await userRes.json();
 
-    const allDates = [];
-    for (let i = 0; i < 5; i++) {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + i);
-      allDates.push(d.toISOString().split('T')[0]);
-    }
+    const [fy, fm, fd] = from.split('-').map(Number);
+    const allDates = Array.from({ length: 5 }, (_, i) => {
+      const d = new Date(fy, fm - 1, fd + i);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    });
 
     const dateSnackShare = {};
     await Promise.all(allDates.map(async date => {
