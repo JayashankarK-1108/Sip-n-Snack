@@ -1067,12 +1067,12 @@ async function loadUserChips() {
     const res = await fetch(`${API}/api/users`);
     if (!res.ok) return;
     const users = await res.json();
-    const nonAdmin = users.filter(u => u.name.toLowerCase() !== (adminName || 'admin').toLowerCase());
+    const nonAdmin = users.filter(u => u.toLowerCase() !== (adminName || 'admin').toLowerCase());
     if (nonAdmin.length === 0) return;
     const chipsEl = document.getElementById('userChips');
     const wrapper = document.getElementById('knownUsers');
     chipsEl.innerHTML = nonAdmin.map(u =>
-      `<button class="chip" onclick="quickLogin('${u.name.replace(/'/g, "\\'")}')">${u.name}</button>`
+      `<button class="chip" onclick="quickLogin('${u.replace(/'/g, "\\'")}')">${u}</button>`
     ).join('');
     wrapper.style.display = '';
   } catch(e) {}
