@@ -1599,7 +1599,7 @@ async function loadUserPayments() {
         <div class="week-summary-row total"><span>Total Payable (Fri EOD)</span><span>₹${weekTotal}</span></div>
         <div class="week-payment-actions">
           ${adminUpi
-            ? `<a href="upi://pay?pa=${encodeURIComponent(adminUpi)}&pn=SipNSnack&am=${weekTotal}&cu=INR&tn=Sip%20n%20Snack%20Break%20Payment" class="btn-make-payment ${isPaid ? 'faint' : ''}">💳 Make Payment</a>`
+            ? `<a href="upi://pay?pa=${encodeURIComponent(adminUpi)}&pn=SipNSnack&am=${Math.ceil(weekTotal)}&cu=INR&tn=Sip%20n%20Snack%20Break%20Payment" class="btn-make-payment ${isPaid ? 'faint' : ''}">💳 Make Payment</a>`
             : `<button class="btn-make-payment" onclick="showToast('UPI not configured — contact Admin.','error')">💳 Make Payment</button>`
           }
           <button class="btn-paid-status ${isPaid ? 'confirmed' : ''}" disabled>${isPaid ? '✓ Paid' : 'Paid'}</button>
