@@ -1625,9 +1625,10 @@ async function loadUserPayments() {
         ${weekEvening > 0 ? `<div class="week-summary-row"><span>🌆 Evening Total</span><span>₹${weekEvening}</span></div>` : ''}
         ${weekSnack > 0 ? `<div class="week-summary-row"><span>🍿 Snack Share Total</span><span>₹${weekSnack}</span></div>` : ''}
         <div class="week-summary-row total"><span>Total Payable (Fri EOD)</span><span>₹${weekTotal}</span></div>
+        ${adminUpi && !isPaid ? `<div style="background:#fff8f0;border:1.5px dashed var(--caramel);border-radius:10px;padding:0.6rem 0.9rem;margin-top:0.75rem;font-size:0.82rem;color:var(--coffee);text-align:center;line-height:1.6;">Enter <strong>₹${Math.ceil(weekTotal)}</strong> as the amount in GPay</div>` : ''}
         <div class="week-payment-actions">
           ${adminUpi
-            ? `<a href="tez://upi/pay?pa=${adminUpi}&pn=SipNSnack&am=${Math.ceil(weekTotal)}&cu=INR&tn=Sip%20n%20Snack%20Break%20Payment" class="btn-make-payment ${isPaid ? 'faint' : ''}">💳 Make Payment</a>`
+            ? `<a href="tez://upi/pay?pa=${adminUpi}" class="btn-make-payment ${isPaid ? 'faint' : ''}">💳 Open GPay</a>`
             : `<button class="btn-make-payment" onclick="showToast('UPI not configured — contact Admin.','error')">💳 Make Payment</button>`
           }
           <button class="btn-paid-status ${isPaid ? 'confirmed' : ''}" disabled>${isPaid ? '✓ Paid' : 'Paid'}</button>
