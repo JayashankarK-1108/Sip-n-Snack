@@ -1394,8 +1394,7 @@ async function loadRecords() {
   content.innerHTML = '<div class="loading">Loading...</div>';
 
   try {
-    const adminHeaders = { 'x-user-name': currentUser };
-    const res = await fetch(`${API}/api/orders?date=${date}`, { headers: adminHeaders });
+    const res = await fetch(`${API}/api/orders/date/${date}`);
     const orders = await res.json();
 
     if (orders.length === 0) {

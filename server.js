@@ -176,10 +176,10 @@ app.get('/api/dates', async (req, res) => {
 app.get('/api/orders/date/:date', async (req, res) => {
   try {
     const { rows } = await pool.query(
-      'SELECT name, items FROM orders WHERE date = $1',
+      'SELECT name, time, items FROM orders WHERE date = $1 ORDER BY created_at DESC',
       [req.params.date]
     );
-    res.json(rows.map(o => ({ name: o.name, items: JSON.parse(o.items) })));
+    res.json(rows.map(o => ({ name: o.name, time: o.time, items: JSON.parse(o.items) })));
   } catch (e) {
     res.status(500).json({ error: 'DB error' });
   }
