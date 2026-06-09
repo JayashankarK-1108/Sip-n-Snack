@@ -1628,7 +1628,7 @@ async function loadUserPayments() {
         ${adminUpi && !isPaid ? `<div style="background:#fff8f0;border:1.5px dashed var(--caramel);border-radius:10px;padding:0.6rem 0.9rem;margin-top:0.75rem;font-size:0.82rem;color:var(--coffee);text-align:center;line-height:1.6;">Enter <strong>₹${Math.ceil(weekTotal)}</strong> as the amount in GPay</div>` : ''}
         <div class="week-payment-actions">
           ${adminUpi
-            ? `<a href="tez://upi/pay?pa=${adminUpi}" class="btn-make-payment ${isPaid ? 'faint' : ''}">💳 Open GPay</a>`
+            ? `<a href="tez://upi/pay" class="btn-make-payment ${isPaid ? 'faint' : ''}">💳 Open GPay</a>`
             : `<button class="btn-make-payment" onclick="showToast('UPI not configured — contact Admin.','error')">💳 Make Payment</button>`
           }
           <button class="btn-paid-status ${isPaid ? 'confirmed' : ''}" disabled>${isPaid ? '✓ Paid' : 'Paid'}</button>
