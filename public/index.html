@@ -1296,6 +1296,7 @@ async function submitOrder() {
 
 // ── Records ──────────────────────────────────────────
 function parseHour(timeStr) {
+  if (!timeStr) return 0;
   // timeStr like "08:30 am" or "04:15 pm"
   const [timePart, period] = timeStr.toLowerCase().split(' ');
   let [h] = timePart.split(':').map(Number);
