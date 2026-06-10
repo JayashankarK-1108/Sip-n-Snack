@@ -277,15 +277,20 @@ app.get('/api/payments/week/:weekStart', async (req, res) => {
     )].sort();
     const userRows = weekUserNames.map(name => ({ name }));
 
-    // Snack share per date
+    // Snack share per date per session (morning/evening) — matches frontend Team Order view
     const dateSnackShare = {};
     for (const date of dates) {
       const dayOrders = parsed.filter(o => o.date === date);
-      const pool2 = dayOrders.filter(o => o.name.toLowerCase() === ADMIN_NAME)
-        .reduce((s, o) => s + srvSnackTotal(o.items), 0);
-      const uCount = [...new Set(dayOrders.map(o => o.name))]
-        .filter(n => n.toLowerCase() !== ADMIN_NAME).length;
-      dateSnackShare[date] = uCount > 0 ? Math.round((pool2 / uCount) / 0.5) * 0.5 : 0;
+      dateSnackShare[date] = { morning: 0, evening: 0 };
+      for (const session of ['morning', 'evening']) {
+        const isMorning = session === 'morning';
+        const sessOrders = dayOrders.filter(o => (srvParseHour(o.time) < 16) === isMorning);
+        const pool2 = sessOrders.filter(o => o.name.toLowerCase() === ADMIN_NAME)
+          .reduce((s, o) => s + srvSnackTotal(o.items), 0);
+        const uCount = [...new Set(sessOrders.map(o => o.name))]
+          .filter(n => n.toLowerCase() !== ADMIN_NAME).length;
+        dateSnackShare[date][session] = uCount > 0 ? Math.round((pool2 / uCount) / 0.5) * 0.5 : 0;
+      }
     }
 
     // Per-user totals
@@ -301,7 +306,11 @@ app.get('/api/payments/week/:weekStart', async (req, res) => {
       for (const date of dates) {
         const dayUser = userOrders.filter(o => o.date === date);
         if (dayUser.length === 0) continue;
-        snack += dateSnackShare[date] || 0;
+        const sessShare = dateSnackShare[date] || { morning: 0, evening: 0 };
+        const hadMorning = dayUser.some(o => srvParseHour(o.time) < 16);
+        const hadEvening = dayUser.some(o => srvParseHour(o.time) >= 16);
+        if (hadMorning) snack += sessShare.morning;
+        if (hadEvening) snack += sessShare.evening;
         dayUser.forEach(o => {
           const total = srvNonSnackTotal(o.items) + srvSnackTotal(o.items);
           if (srvParseHour(o.time) < 16) morning += total;
