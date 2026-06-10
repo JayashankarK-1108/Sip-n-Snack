@@ -1483,7 +1483,7 @@ async function loadMyOrders() {
             <div class="order-time">${o.time}</div>
           </div>
           <div class="order-items-grid">
-            ${o.items.map(i => `<span class="order-item-tag">${i.emoji} ${i.name} ×${i.qty}</span>`).join('')}
+            ${o.items.map(i => `<span class="order-item-tag">${i.emoji} ${i.name} ×${i.qty} <span style="opacity:0.6;font-size:0.78rem;">₹${itemPrice(i.id) * i.qty}</span></span>`).join('')}
           </div>
           ${snackRow}
           ${totalRow}
