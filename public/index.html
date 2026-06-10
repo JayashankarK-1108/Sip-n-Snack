@@ -1446,22 +1446,26 @@ async function loadMyOrders() {
         const r = await fetch(`${API}/api/orders/date/${date}`);
         if (!r.ok) return;
         const allOrders = await r.json();
-        // Pool only admin-ordered snacks
-        const pool = allOrders
-          .filter(o => o.name.toLowerCase() === adminName.toLowerCase())
-          .reduce((sum, o) => sum + snackCategoryTotal(o.items), 0);
-        const users = [...new Set(allOrders.map(o => o.name))]
-          .filter(n => n.toLowerCase() !== adminName.toLowerCase()).length;
-        dateSnackShare[date] = users > 0 ? Math.round((pool / users) / 0.5) * 0.5 : 0;
-      } catch(e) { dateSnackShare[date] = 0; }
+        dateSnackShare[date] = { morning: 0, evening: 0 };
+        for (const session of ['morning', 'evening']) {
+          const sessOrders = allOrders.filter(o => (parseHour(o.time) < 16) === (session === 'morning'));
+          const pool = sessOrders.filter(o => o.name.toLowerCase() === adminName.toLowerCase())
+            .reduce((sum, o) => sum + snackCategoryTotal(o.items), 0);
+          const users = [...new Set(sessOrders.map(o => o.name))]
+            .filter(n => n.toLowerCase() !== adminName.toLowerCase()).length;
+          dateSnackShare[date][session] = users > 0 ? Math.round((pool / users) / 0.5) * 0.5 : 0;
+        }
+      } catch(e) { dateSnackShare[date] = { morning: 0, evening: 0 }; }
     }));
 
     const viewerIsAdmin = currentUser.toLowerCase() === adminName.toLowerCase();
     let grandTotal = 0;
     const cards = orders.map(o => {
       const myItems = orderTotal(o.items);
-      const share = viewerIsAdmin ? 0 : (dateSnackShare[o.date] || 0);
-      const session = parseHour(o.time) < 16 ? '🌅 Morning' : '🌆 Evening';
+      const isMorning = parseHour(o.time) < 16;
+      const sessShare = dateSnackShare[o.date] || { morning: 0, evening: 0 };
+      const share = viewerIsAdmin ? 0 : (isMorning ? sessShare.morning : sessShare.evening);
+      const session = isMorning ? '🌅 Morning' : '🌆 Evening';
       const payable = myItems + share;
       grandTotal += payable;
 
@@ -1578,7 +1582,7 @@ async function loadUserPayments() {
 
     const dayCards = allDates.map((date, i) => {
       const dayData = byDate[date];
-      const share = dateSnackShare[date] || 0;
+      const sessShare = dateSnackShare[date] || { morning: 0, evening: 0 };
       if (!dayData) return `
         <div class="payment-day-card no-order">
           <div><div class="payment-day-name">${DAYS[i]}</div><div class="payment-day-date">${fmtDate(date)}</div></div>
@@ -1586,7 +1590,8 @@ async function loadUserPayments() {
         </div>`;
       const morningTotal = dayData.morning.reduce((s, o) => s + orderTotal(o.items), 0);
       const eveningTotal = dayData.evening.reduce((s, o) => s + orderTotal(o.items), 0);
-      const daySnack = share;
+      const daySnack = (dayData.morning.length > 0 ? sessShare.morning : 0)
+                     + (dayData.evening.length > 0 ? sessShare.evening : 0);
       const dayTotal = morningTotal + eveningTotal + daySnack;
       weekMorning += morningTotal; weekEvening += eveningTotal; weekSnack += daySnack;
       const breakdown = [];
