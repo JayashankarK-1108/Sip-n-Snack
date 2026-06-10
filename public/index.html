@@ -1556,12 +1556,16 @@ async function loadUserPayments() {
         const r = await fetch(`${API}/api/orders/date/${date}`);
         if (!r.ok) return;
         const all = await r.json();
-        const pool = all.filter(o => o.name.toLowerCase() === adminName.toLowerCase())
-          .reduce((sum, o) => sum + snackCategoryTotal(o.items), 0);
-        const users = [...new Set(all.map(o => o.name))]
-          .filter(n => n.toLowerCase() !== adminName.toLowerCase()).length;
-        dateSnackShare[date] = users > 0 ? Math.round((pool / users) / 0.5) * 0.5 : 0;
-      } catch(e) { dateSnackShare[date] = 0; }
+        dateSnackShare[date] = { morning: 0, evening: 0 };
+        for (const session of ['morning', 'evening']) {
+          const sessOrders = all.filter(o => (parseHour(o.time) < 16) === (session === 'morning'));
+          const pool = sessOrders.filter(o => o.name.toLowerCase() === adminName.toLowerCase())
+            .reduce((sum, o) => sum + snackCategoryTotal(o.items), 0);
+          const users = [...new Set(sessOrders.map(o => o.name))]
+            .filter(n => n.toLowerCase() !== adminName.toLowerCase()).length;
+          dateSnackShare[date][session] = users > 0 ? Math.round((pool / users) / 0.5) * 0.5 : 0;
+        }
+      } catch(e) { dateSnackShare[date] = { morning: 0, evening: 0 }; }
     }));
 
     // Fetch payment status for this week
