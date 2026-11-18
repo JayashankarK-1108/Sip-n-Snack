@@ -576,34 +576,7 @@
     }
     .grand-total-card strong { color: var(--gold); font-size: 1.1rem; }
 
-    /* ── Payments Panel ── */
-    .week-nav {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 1.5rem;
-      gap: 0.75rem;
-    }
-    .week-nav-label {
-      font-family: 'Playfair Display', serif;
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--espresso);
-      text-align: center;
-      flex: 1;
-    }
-    .week-nav-label span { display: block; font-family: 'DM Sans', sans-serif; font-size: 0.78rem; font-weight: 400; color: var(--muted); margin-top: 0.15rem; }
-    .btn-week-nav {
-      background: var(--card-bg);
-      border: 1.5px solid rgba(107,61,46,0.15);
-      border-radius: 8px;
-      padding: 0.5rem 0.85rem;
-      cursor: pointer;
-      font-size: 1rem;
-      color: var(--coffee);
-      transition: all 0.2s;
-    }
-    .btn-week-nav:hover { border-color: var(--caramel); background: #fff; }
+    /* ── Wallet Panel ── */
     .payment-day-card {
       background: var(--card-bg);
       border-radius: 14px;
@@ -632,8 +605,30 @@
     .week-summary-row { display: flex; justify-content: space-between; font-size: 0.875rem; margin-bottom: 0.5rem; opacity: 0.85; }
     .week-summary-row.total { border-top: 1px solid rgba(255,255,255,0.15); padding-top: 0.6rem; margin-top: 0.4rem; font-weight: 700; font-size: 1rem; opacity: 1; }
 
-    /* ── Payment action buttons (user view) ── */
-    .week-payment-actions { display: flex; gap: 0.75rem; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.12); }
+    .week-summary-row.total span.negative { color: #e57368; }
+    .wallet-balance-big { font-family: 'Playfair Display', serif; font-size: 2.2rem; font-weight: 700; color: var(--gold); margin: 0.25rem 0 0.75rem; }
+    .wallet-balance-big.negative { color: #e57368; }
+    .wallet-low-note { font-size: 0.8rem; color: #e57368; margin-bottom: 0.75rem; }
+    .wallet-section-label { font-weight: 700; font-size: 0.85rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 1.5rem 0 0.75rem; }
+    .payment-day-total.credit { color: var(--sage); }
+    .payment-day-balance { font-size: 0.75rem; color: var(--muted); font-weight: 400; margin-top: 0.15rem; }
+    .wallet-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--espresso); color: var(--cream); border-radius: 12px;
+      padding: 0.75rem 1.1rem; margin-bottom: 1.25rem; font-size: 0.875rem;
+      cursor: pointer;
+    }
+    .wallet-bar strong { color: var(--gold); font-size: 1.1rem; }
+    .wallet-bar.negative strong { color: #e57368; }
+    .topup-controls { display: flex; align-items: center; gap: 0.4rem; }
+    .topup-amount {
+      width: 72px; padding: 0.4rem 0.5rem; border-radius: 8px;
+      border: 1.5px solid rgba(107,61,46,0.2); font-family: 'DM Sans', sans-serif; font-size: 0.85rem;
+    }
+    .btn-undo-topup { background: none; border: none; color: var(--muted); font-size: 0.75rem; text-decoration: underline; cursor: pointer; padding: 0; margin-left: 0.3rem; }
+    .payment-user-total.negative { color: #c0392b; }
+
+    .wallet-actions { margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.12); }
     .btn-make-payment {
       flex: 1; background: #c0392b; color: #fff; border: none;
       padding: 0.65rem 1rem; border-radius: 10px;
@@ -642,16 +637,8 @@
       display: block; text-align: center; text-decoration: none;
     }
     .btn-make-payment:hover { background: #a93226; }
-    .btn-make-payment.faint { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.3); cursor: default; pointer-events: none; }
-    .btn-paid-status {
-      flex: 1; background: transparent;
-      border: 1.5px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.35);
-      padding: 0.65rem 1rem; border-radius: 10px;
-      font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 600; cursor: default;
-    }
-    .btn-paid-status.confirmed { border-color: var(--sage); color: var(--sage); background: rgba(122,158,126,0.15); }
 
-    /* ── Admin payments view ── */
+    /* ── Admin wallet view ── */
     .admin-payments-summary {
       display: flex; justify-content: space-between; align-items: center;
       background: var(--card-bg); border-radius: 10px; padding: 0.75rem 1.1rem;
@@ -895,7 +882,7 @@
   <button class="tab-btn active" onclick="showTab('order')" id="tabOrder">🛒 Order</button>
   <button class="tab-btn" onclick="showTab('records')" id="tabRecords">👥 Team Order</button>
   <button class="tab-btn" onclick="showTab('myOrders')" id="tabMyOrders">👤 My Orders</button>
-  <button class="tab-btn" onclick="showTab('myPayments')" id="tabMyPayments">💰 My Payments</button>
+  <button class="tab-btn" onclick="showTab('wallet')" id="tabWallet">👛 My Wallet</button>
 </nav>
 
 <main>
@@ -941,6 +928,11 @@
       <p>Pick your items and set quantities. Hit submit when done!</p>
     </div>
 
+    <div class="wallet-bar" id="walletBar" style="display:none;" onclick="showTab('wallet')">
+      <span>👛 Wallet balance</span>
+      <strong id="walletBarAmount">—</strong>
+    </div>
+
     <div id="menuGrid"></div>
 
     <div class="order-summary">
@@ -975,13 +967,13 @@
     <div id="myOrdersContent"><div class="loading">Loading...</div></div>
   </div>
 
-  <!-- MY PAYMENTS -->
-  <div class="panel" id="panelMyPayments">
+  <!-- WALLET -->
+  <div class="panel" id="panelWallet">
     <div class="order-header">
-      <h2>💰 My Payments</h2>
-      <p>Weekly breakdown of what you owe. Payments collected every Friday.</p>
+      <h2 id="walletTitle">👛 My Wallet</h2>
+      <p id="walletSubtitle">Pay ₹400 to Admin to top up. Every order is deducted from your balance.</p>
     </div>
-    <div id="myPaymentsContent"><div class="loading">Loading...</div></div>
+    <div id="walletContent"><div class="loading">Loading...</div></div>
   </div>
 
 </main>
@@ -1028,8 +1020,13 @@ function itemPrice(id) {
   return menu ? parseInt(menu.price.replace('₹', '')) : 0;
 }
 
+// Line amount using the price stored on the order (older orders fall back to the current menu price)
+function linePrice(i) {
+  return (Number.isFinite(i.price) ? i.price : itemPrice(i.id)) * i.qty;
+}
+
 function orderTotal(items) {
-  return items.reduce((sum, i) => sum + itemPrice(i.id) * i.qty, 0);
+  return items.reduce((sum, i) => sum + linePrice(i), 0);
 }
 
 // Total of only non-Snacks items for a user
@@ -1037,7 +1034,7 @@ function nonSnackTotal(items) {
   return items.reduce((sum, i) => {
     const menu = MENU.find(m => m.id === i.id);
     if (menu && menu.category === 'Snacks') return sum;
-    return sum + itemPrice(i.id) * i.qty;
+    return sum + linePrice(i);
   }, 0);
 }
 
@@ -1046,8 +1043,13 @@ function snackCategoryTotal(items) {
   return items.reduce((sum, i) => {
     const menu = MENU.find(m => m.id === i.id);
     if (!menu || menu.category !== 'Snacks') return sum;
-    return sum + itemPrice(i.id) * i.qty;
+    return sum + linePrice(i);
   }, 0);
+}
+
+function fmtMoney(n) {
+  const abs = Math.abs(n);
+  return `${n < 0 ? '−' : ''}₹${Number.isInteger(abs) ? abs : abs.toFixed(2)}`;
 }
 
 // ── Init ──────────────────────────────────────────────
@@ -1120,8 +1122,11 @@ function setUser(name, animated, adminFlag) {
   document.getElementById('navTabs').style.display = 'flex';
   document.getElementById('greetingName').textContent = name;
   document.getElementById('tabRecords').style.display = '';
-  document.getElementById('tabMyPayments').style.display = '';
-  document.getElementById('tabMyPayments').textContent = isAdmin ? '💰 Payments' : '💰 My Payments';
+  document.getElementById('tabWallet').textContent = isAdmin ? '👛 Wallets' : '👛 My Wallet';
+  document.getElementById('walletTitle').textContent = isAdmin ? '👛 Associate Wallets' : '👛 My Wallet';
+  document.getElementById('walletSubtitle').textContent = isAdmin
+    ? 'Top up an associate when they hand over cash. Orders are deducted automatically.'
+    : 'Pay ₹400 to Admin to top up. Every order is deducted from your balance.';
 
   showPanel('panelOrder');
   document.getElementById('panelLogin').style.display = 'none';
@@ -1151,7 +1156,7 @@ function logout() {
 // ── Navigation ──────────────────────────────────────────
 function showTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  const panels = ['panelOrder', 'panelRecords', 'panelMyOrders', 'panelMyPayments'];
+  const panels = ['panelOrder', 'panelRecords', 'panelMyOrders', 'panelWallet'];
   panels.forEach(p => {
     const el = document.getElementById(p);
     if (el) el.classList.remove('active');
@@ -1160,6 +1165,7 @@ function showTab(tab) {
   if (tab === 'order') {
     document.getElementById('tabOrder').classList.add('active');
     showPanel('panelOrder');
+    loadWalletBar();
   } else if (tab === 'records') {
     if (!isAdmin) return;
     document.getElementById('tabRecords').classList.add('active');
@@ -1169,10 +1175,10 @@ function showTab(tab) {
     document.getElementById('tabMyOrders').classList.add('active');
     showPanel('panelMyOrders');
     loadMyOrders();
-  } else if (tab === 'myPayments') {
-    document.getElementById('tabMyPayments').classList.add('active');
-    showPanel('panelMyPayments');
-    loadMyPayments();
+  } else if (tab === 'wallet') {
+    document.getElementById('tabWallet').classList.add('active');
+    showPanel('panelWallet');
+    loadWallet();
   }
 }
 
@@ -1282,8 +1288,10 @@ async function submitOrder() {
     });
     const data = await res.json();
     if (data.success) {
-      showToast('Order submitted! Enjoy your break 🎉', 'success');
+      const remaining = typeof data.balance === 'number' ? ` Remaining balance: ${fmtMoney(data.balance)}` : '';
+      showToast(`Order submitted! Enjoy your break 🎉${remaining}`, 'success');
       resetMenu();
+      if (typeof data.balance === 'number') setWalletBar(data.balance);
     } else {
       showToast('Something went wrong.', 'error');
     }
@@ -1371,7 +1379,7 @@ function buildSessionHTML(sessionOrders, icon, label) {
             ${g.items.map(i => `<span class="order-item-tag">${i.emoji} ${i.name} ×${i.qty}</span>`).join('')}
           </div>
           ${snackRow}
-          <div class="order-total-row">Total payable: <span>₹${finalTotal}</span></div>
+          <div class="order-total-row">Deducted: <span>₹${finalTotal}</span></div>
         </div>`;
     }).join('');
 
@@ -1475,7 +1483,7 @@ async function loadMyOrders() {
         : '';
       const totalRow = viewerIsAdmin
         ? `<div class="order-total-row">Order total: <span>₹${myItems}</span></div>`
-        : `<div class="order-total-row">Total payable: <span>₹${payable}</span></div>`;
+        : `<div class="order-total-row">Deducted: <span>₹${payable}</span></div>`;
 
       return `
         <div class="order-card">
@@ -1484,14 +1492,14 @@ async function loadMyOrders() {
             <div class="order-time">${o.time}</div>
           </div>
           <div class="order-items-grid">
-            ${o.items.map(i => `<span class="order-item-tag">${i.emoji} ${i.name} ×${i.qty} <span style="opacity:0.6;font-size:0.78rem;">₹${itemPrice(i.id) * i.qty}</span></span>`).join('')}
+            ${o.items.map(i => `<span class="order-item-tag">${i.emoji} ${i.name} ×${i.qty} <span style="opacity:0.6;font-size:0.78rem;">₹${linePrice(i)}</span></span>`).join('')}
           </div>
           ${snackRow}
           ${totalRow}
         </div>`;
     }).join('');
 
-    const grandLabel = viewerIsAdmin ? 'Total ordered' : 'Total payable';
+    const grandLabel = viewerIsAdmin ? 'Total ordered' : 'Total deducted';
     content.innerHTML = `
       <div class="grand-total-card">
         <span>${grandLabel} (last ${orders.length} order${orders.length !== 1 ? 's' : ''})</span>
@@ -1504,263 +1512,194 @@ async function loadMyOrders() {
   }
 }
 
-// ── My Payments ──────────────────────────────────────────
-let paymentsWeekOffset = 0; // 0 = current week, -1 = last week, etc.
-
-function getWeekRange(offset) {
-  // Get today's date in IST reliably, avoiding UTC conversion issues
-  const todayIST = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-  const [y, m, d] = todayIST.split('-').map(Number);
-  const today = new Date(y, m - 1, d);
-  const dow = today.getDay(); // 0=Sun,1=Mon...6=Sat
-  const diffToMon = dow === 0 ? -6 : 1 - dow;
-  const monday = new Date(today);
-  monday.setDate(today.getDate() + diffToMon + offset * 7);
-  const friday = new Date(monday);
-  friday.setDate(monday.getDate() + 4);
-  const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  return { from: fmt(monday), to: fmt(friday), monday, friday };
-}
+// ── Wallet ──────────────────────────────────────────
+const LOW_BALANCE = 50;
 
 function fmtDate(d) {
   return new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
 
-async function loadMyPayments() {
-  if (!currentUser) return;
-  if (isAdmin) await loadAdminPayments();
-  else await loadUserPayments();
+function setWalletBar(balance) {
+  const bar = document.getElementById('walletBar');
+  bar.style.display = '';
+  bar.classList.toggle('negative', balance < 0);
+  document.getElementById('walletBarAmount').textContent = fmtMoney(balance);
 }
 
-// ── User Payments View ────────────────────────────────
-async function loadUserPayments() {
-  const content = document.getElementById('myPaymentsContent');
+async function loadWalletBar() {
+  const bar = document.getElementById('walletBar');
+  if (!currentUser || isAdmin) { bar.style.display = 'none'; return; }
+  try {
+    const res = await fetch(`${API}/api/wallet/${encodeURIComponent(currentUser)}`);
+    if (!res.ok) return;
+    const { balance } = await res.json();
+    setWalletBar(balance);
+  } catch(e) {}
+}
+
+async function loadWallet() {
+  if (!currentUser) return;
+  if (isAdmin) await loadAdminWallets();
+  else await loadUserWallet();
+}
+
+// ── User Wallet View ────────────────────────────────
+async function loadUserWallet() {
+  const content = document.getElementById('walletContent');
   content.innerHTML = '<div class="loading">Loading...</div>';
 
-  const { from, to, monday } = getWeekRange(paymentsWeekOffset);
-  const weekStart = from;
-  const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-
   try {
-    const userRes = await fetch(`${API}/api/orders/user/${encodeURIComponent(currentUser)}/range?from=${from}&to=${to}`);
-    const userOrders = await userRes.json();
+    const res = await fetch(`${API}/api/wallet/${encodeURIComponent(currentUser)}`);
+    if (!res.ok) throw new Error();
+    const { credited, spent, balance, ledger } = await res.json();
+    setWalletBar(balance);
 
-    const [fy, fm, fd] = from.split('-').map(Number);
-    const allDates = Array.from({ length: 5 }, (_, i) => {
-      const d = new Date(fy, fm - 1, fd + i);
-      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    });
-
-    const dateSnackShare = {};
-    await Promise.all(allDates.map(async date => {
-      try {
-        const r = await fetch(`${API}/api/orders/date/${date}`);
-        if (!r.ok) return;
-        const all = await r.json();
-        dateSnackShare[date] = { morning: 0, evening: 0 };
-        for (const session of ['morning', 'evening']) {
-          const sessOrders = all.filter(o => (parseHour(o.time) < 16) === (session === 'morning'));
-          const pool = sessOrders.filter(o => o.name.toLowerCase() === adminName.toLowerCase())
-            .reduce((sum, o) => sum + snackCategoryTotal(o.items), 0);
-          const users = [...new Set(sessOrders.map(o => o.name))]
-            .filter(n => n.toLowerCase() !== adminName.toLowerCase()).length;
-          dateSnackShare[date][session] = users > 0 ? Math.round((pool / users) / 0.5) * 0.5 : 0;
-        }
-      } catch(e) { dateSnackShare[date] = { morning: 0, evening: 0 }; }
-    }));
-
-    // Fetch payment status for this week
-    let paymentStatus = 'unpaid', paidAt = null;
-    try {
-      const sr = await fetch(`${API}/api/payments/status/${encodeURIComponent(currentUser)}/${weekStart}`);
-      if (sr.ok) { const sd = await sr.json(); paymentStatus = sd.status; paidAt = sd.paidAt; }
-    } catch(e) {}
-
-    const byDate = {};
-    userOrders.forEach(o => {
-      if (!byDate[o.date]) byDate[o.date] = { morning: [], evening: [] };
-      if (parseHour(o.time) < 16) byDate[o.date].morning.push(o);
-      else byDate[o.date].evening.push(o);
-    });
-
-    let weekMorning = 0, weekEvening = 0, weekSnack = 0;
-
-    const dayCards = allDates.map((date, i) => {
-      const dayData = byDate[date];
-      const sessShare = dateSnackShare[date] || { morning: 0, evening: 0 };
-      if (!dayData) return `
-        <div class="payment-day-card no-order">
-          <div><div class="payment-day-name">${DAYS[i]}</div><div class="payment-day-date">${fmtDate(date)}</div></div>
-          <div class="payment-day-total zero">No order</div>
-        </div>`;
-      const morningTotal = dayData.morning.reduce((s, o) => s + orderTotal(o.items), 0);
-      const eveningTotal = dayData.evening.reduce((s, o) => s + orderTotal(o.items), 0);
-      const daySnack = (dayData.morning.length > 0 ? sessShare.morning : 0)
-                     + (dayData.evening.length > 0 ? sessShare.evening : 0);
-      const dayTotal = morningTotal + eveningTotal + daySnack;
-      weekMorning += morningTotal; weekEvening += eveningTotal; weekSnack += daySnack;
+    const entries = ledger.map(e => {
+      if (e.type === 'topup') {
+        const when = new Date(e.at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+        return `
+          <div class="payment-day-card">
+            <div>
+              <div class="payment-day-name">💵 Top-up</div>
+              <div class="payment-day-date">${when}${e.addedBy ? ` · by ${e.addedBy}` : ''}</div>
+            </div>
+            <div class="payment-day-total credit">+${fmtMoney(e.amount)}
+              <div class="payment-day-balance">Balance ${fmtMoney(e.balance)}</div>
+            </div>
+          </div>`;
+      }
+      const dayName = new Date(e.date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short' });
       const breakdown = [];
-      if (morningTotal > 0) breakdown.push(`🌅 Morning ₹${morningTotal}`);
-      if (eveningTotal > 0) breakdown.push(`🌆 Evening ₹${eveningTotal}`);
-      if (daySnack > 0) breakdown.push(`🍿 Snack share ₹${daySnack}`);
+      if (e.morning > 0) breakdown.push(`🌅 Morning ${fmtMoney(e.morning)}`);
+      if (e.evening > 0) breakdown.push(`🌆 Evening ${fmtMoney(e.evening)}`);
+      if (e.snack > 0) breakdown.push(`🍿 Snack share ${fmtMoney(e.snack)}`);
       return `
         <div class="payment-day-card">
           <div>
-            <div class="payment-day-name">${DAYS[i]}</div>
-            <div class="payment-day-date">${fmtDate(date)}</div>
+            <div class="payment-day-name">${dayName}</div>
+            <div class="payment-day-date">${fmtDate(e.date)}</div>
             <div class="payment-day-breakdown">${breakdown.join(' · ')}</div>
           </div>
-          <div class="payment-day-total">₹${dayTotal}</div>
+          <div class="payment-day-total">−${fmtMoney(e.amount)}
+            <div class="payment-day-balance">Balance ${fmtMoney(e.balance)}</div>
+          </div>
         </div>`;
     }).join('');
 
-    const weekTotal = weekMorning + weekEvening + weekSnack;
-    const weekLabel = `${fmtDate(from)} – ${fmtDate(to)}`;
-    const isCurrentWeek = paymentsWeekOffset === 0;
-    const isPaid = paymentStatus === 'paid';
-    const paidDateStr = isPaid && paidAt
-      ? new Date(paidAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-      : '';
+    const lowNote = balance < 0
+      ? `<div class="wallet-low-note">Your wallet is overdrawn. Please top up ₹400 with Admin.</div>`
+      : balance < LOW_BALANCE
+        ? `<div class="wallet-low-note">Running low. Time to top up soon.</div>`
+        : '';
 
     content.innerHTML = `
-      <div class="week-nav">
-        <button class="btn-week-nav" onclick="changeWeek(-1)">◀</button>
-        <div class="week-nav-label">Week of ${weekLabel}<span>${isCurrentWeek ? 'Current week' : ''}</span></div>
-        <button class="btn-week-nav" onclick="changeWeek(1)" ${isCurrentWeek ? 'disabled style="opacity:0.3;cursor:default;"' : ''}>▶</button>
+      <div class="week-summary-card" style="margin-top:0;">
+        <h3>👛 Remaining Balance</h3>
+        <div class="wallet-balance-big ${balance < 0 ? 'negative' : ''}">${fmtMoney(balance)}</div>
+        ${lowNote}
+        <div class="week-summary-row"><span>💵 Total topped up</span><span>${fmtMoney(credited)}</span></div>
+        <div class="week-summary-row"><span>☕ Total spent</span><span>${fmtMoney(spent)}</span></div>
+        ${adminUpi ? `
+        <div class="wallet-actions">
+          <a href="tez://upi/pay" class="btn-make-payment">💳 Top up via GPay</a>
+        </div>` : ''}
       </div>
-      ${dayCards}
-      <div class="week-summary-card">
-        <h3>📊 Week Summary</h3>
-        ${weekMorning > 0 ? `<div class="week-summary-row"><span>🌅 Morning Total</span><span>₹${weekMorning}</span></div>` : ''}
-        ${weekEvening > 0 ? `<div class="week-summary-row"><span>🌆 Evening Total</span><span>₹${weekEvening}</span></div>` : ''}
-        ${weekSnack > 0 ? `<div class="week-summary-row"><span>🍿 Snack Share Total</span><span>₹${weekSnack}</span></div>` : ''}
-        <div class="week-summary-row total"><span>Total Payable (Fri EOD)</span><span>₹${weekTotal}</span></div>
-        ${adminUpi && !isPaid ? `<div style="background:#fff8f0;border:1.5px dashed var(--caramel);border-radius:10px;padding:0.6rem 0.9rem;margin-top:0.75rem;font-size:0.82rem;color:var(--coffee);text-align:center;line-height:1.6;">Enter <strong>₹${Math.ceil(weekTotal)}</strong> as the amount in GPay</div>` : ''}
-        <div class="week-payment-actions">
-          ${adminUpi
-            ? `<a href="tez://upi/pay" class="btn-make-payment ${isPaid ? 'faint' : ''}">💳 Open GPay</a>`
-            : `<button class="btn-make-payment" onclick="showToast('UPI not configured — contact Admin.','error')">💳 Make Payment</button>`
-          }
-          <button class="btn-paid-status ${isPaid ? 'confirmed' : ''}" disabled>${isPaid ? '✓ Paid' : 'Paid'}</button>
-        </div>
-        ${isPaid ? `<div style="font-size:0.75rem;opacity:0.6;text-align:center;margin-top:0.5rem;">Confirmed by Admin · ${paidDateStr}</div>` : ''}
-      </div>`;
+      <div class="wallet-section-label">History</div>
+      ${entries || `<div class="no-orders"><div class="icon">👛</div><p>No top-ups or orders yet.</p></div>`}`;
 
   } catch(e) {
-    content.innerHTML = '<div class="no-orders"><div class="icon">⚠️</div><p>Could not load payments.</p></div>';
+    content.innerHTML = '<div class="no-orders"><div class="icon">⚠️</div><p>Could not load your wallet.</p></div>';
   }
 }
 
-function changeWeek(dir) {
-  if (paymentsWeekOffset === 0 && dir === 1) return;
-  paymentsWeekOffset += dir;
-  loadUserPayments();
-}
-
-// ── Admin Payments View ───────────────────────────────
-let adminPaymentsWeekOffset = 0;
-
-function changeAdminWeek(dir) {
-  if (adminPaymentsWeekOffset === 0 && dir === 1) return;
-  adminPaymentsWeekOffset += dir;
-  loadAdminPayments();
-}
-
-async function loadAdminPayments() {
-  const content = document.getElementById('myPaymentsContent');
+// ── Admin Wallets View ──────────────────────────────
+async function loadAdminWallets() {
+  const content = document.getElementById('walletContent');
   content.innerHTML = '<div class="loading">Loading...</div>';
 
-  const { from, to } = getWeekRange(adminPaymentsWeekOffset);
-  const weekStart = from;
-  const isCurrentWeek = adminPaymentsWeekOffset === 0;
-  const weekLabel = `${fmtDate(from)} – ${fmtDate(to)}`;
-
-  const navHTML = `
-    <div class="week-nav">
-      <button class="btn-week-nav" onclick="changeAdminWeek(-1)">◀</button>
-      <div class="week-nav-label">Week of ${weekLabel}<span>${isCurrentWeek ? 'Current week' : ''}</span></div>
-      <button class="btn-week-nav" onclick="changeAdminWeek(1)" ${isCurrentWeek ? 'disabled style="opacity:0.3;cursor:default;"' : ''}>▶</button>
-    </div>`;
-
   try {
-    const res = await fetch(`${API}/api/payments/week/${weekStart}`, {
-      headers: { 'x-user-name': currentUser }
-    });
+    const res = await fetch(`${API}/api/wallets`, { headers: { 'x-user-name': currentUser } });
     if (!res.ok) throw new Error();
-    const { users } = await res.json();
+    const { users, defaultTopup } = await res.json();
 
     if (!users.length) {
-      content.innerHTML = navHTML + `<div class="no-orders"><div class="icon">🍃</div><p>No users found.</p></div>`;
+      content.innerHTML = `<div class="no-orders"><div class="icon">🍃</div><p>No associates yet.</p></div>`;
       return;
     }
 
-    const paidCount = users.filter(u => u.status === 'paid').length;
-    const outstanding = users.filter(u => u.status !== 'paid').reduce((s, u) => s + u.total, 0);
+    const totalBalance = users.reduce((s, u) => s + u.balance, 0);
+    const overdrawn = users.filter(u => u.balance < 0).length;
 
-    const userRows = users.map(u => {
-      const isPaid = u.status === 'paid';
-      const paidDateStr = isPaid && u.paidAt
-        ? new Date(u.paidAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '';
-      const breakdown = [
-        u.morning > 0 ? `🌅 ₹${u.morning}` : '',
-        u.evening > 0 ? `🌆 ₹${u.evening}` : '',
-        u.snack > 0 ? `🍿 ₹${u.snack}` : ''
-      ].filter(Boolean).join(' · ') || 'No orders this week';
-
+    const userRows = users.map((u, idx) => {
+      const last = u.lastTopup;
+      const lastInfo = last
+        ? `<div class="payment-user-paid-info">Last top-up ${fmtMoney(last.amount)} · ${new Date(last.at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+             <button class="btn-undo-topup" onclick="undoTopup(${last.id}, '${u.userName.replace(/'/g, "\\'")}')">undo</button></div>`
+        : '';
       return `
-        <div class="payment-user-row ${isPaid ? 'is-paid' : ''}" id="prow-${u.userName.replace(/\s+/g,'_')}">
+        <div class="payment-user-row ${u.balance < 0 ? '' : u.credited > 0 ? 'is-paid' : ''}">
           <div class="payment-user-info">
             <div class="payment-user-name">👤 ${u.userName}</div>
-            <div class="payment-user-breakdown">${breakdown}</div>
-            ${isPaid ? `<div class="payment-user-paid-info">✓ Paid · ${paidDateStr}</div>` : ''}
+            <div class="payment-user-breakdown">Topped up ${fmtMoney(u.credited)} · Spent ${fmtMoney(u.spent)}</div>
+            ${lastInfo}
           </div>
           <div class="payment-user-right">
-            <div class="payment-user-total ${u.total === 0 ? 'zero' : ''}">₹${u.total}</div>
-            <button
-              class="btn-mark-paid ${isPaid ? 'paid' : ''}"
-              id="paybtn-${u.userName.replace(/\s+/g,'_')}"
-              onclick="markPaid('${u.userName.replace(/'/g,"\\'")}','${weekStart}')"
-              ${isPaid ? 'disabled' : ''}
-            >${isPaid ? '✓ Paid' : 'Mark Paid'}</button>
+            <div class="payment-user-total ${u.balance < 0 ? 'negative' : u.balance === 0 ? 'zero' : ''}">${fmtMoney(u.balance)}</div>
+            <div class="topup-controls">
+              <input type="number" class="topup-amount" id="topup-amt-${idx}" value="${defaultTopup}" min="1" max="10000" />
+              <button class="btn-mark-paid" id="topup-btn-${idx}"
+                onclick="topupWallet('${u.userName.replace(/'/g, "\\'")}', ${idx})">+ Add</button>
+            </div>
           </div>
         </div>`;
     }).join('');
 
-    const weekTotal = users.reduce((s, u) => s + u.total, 0);
     content.innerHTML = `
-      ${navHTML}
       <div class="admin-payments-summary">
-        <span>${paidCount} of ${users.length} paid</span>
-        <span>Outstanding: <strong>₹${outstanding}</strong> · Week Total: <strong>₹${weekTotal}</strong></span>
+        <span>${users.length} associates${overdrawn ? ` · <strong>${overdrawn} overdrawn</strong>` : ''}</span>
+        <span>Total in wallets: <strong>${fmtMoney(totalBalance)}</strong></span>
       </div>
       <div class="payment-users-list">${userRows}</div>`;
 
   } catch(e) {
-    content.innerHTML = navHTML + `<div class="no-orders"><div class="icon">⚠️</div><p>Could not load data.</p></div>`;
+    content.innerHTML = `<div class="no-orders"><div class="icon">⚠️</div><p>Could not load wallets.</p></div>`;
   }
 }
 
-async function markPaid(userName, weekStart) {
-  const safeId = userName.replace(/\s+/g, '_');
-  const btn = document.getElementById(`paybtn-${safeId}`);
-  const row = document.getElementById(`prow-${safeId}`);
+async function topupWallet(userName, idx) {
+  const btn = document.getElementById(`topup-btn-${idx}`);
+  const amount = Number(document.getElementById(`topup-amt-${idx}`).value);
   if (!btn || btn.disabled) return;
-  const orig = btn.textContent;
+  if (!Number.isFinite(amount) || amount <= 0) return showToast('Enter a valid amount.', 'error');
   btn.textContent = 'Saving...'; btn.disabled = true;
   try {
-    const res = await fetch(`${API}/api/payments/mark-paid`, {
+    const res = await fetch(`${API}/api/wallet/topup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-user-name': currentUser },
-      body: JSON.stringify({ userName, weekStart })
+      body: JSON.stringify({ userName, amount })
     });
     const data = await res.json();
     if (!res.ok || !data.success) throw new Error();
-    btn.textContent = '✓ Paid'; btn.classList.add('paid');
-    if (row) row.classList.add('is-paid');
-    showToast(`${userName} marked as paid`, 'success');
+    showToast(`${fmtMoney(amount)} added to ${userName}'s wallet. Balance ${fmtMoney(data.balance)}`, 'success');
+    loadAdminWallets();
   } catch(e) {
-    showToast('Failed to mark as paid.', 'error');
-    btn.textContent = orig; btn.disabled = false;
+    showToast('Failed to top up.', 'error');
+    btn.textContent = '+ Add'; btn.disabled = false;
+  }
+}
+
+async function undoTopup(id, userName) {
+  if (!confirm(`Remove the last top-up for ${userName}?`)) return;
+  try {
+    const res = await fetch(`${API}/api/wallet/topup/${id}`, {
+      method: 'DELETE',
+      headers: { 'x-user-name': currentUser }
+    });
+    if (!res.ok) throw new Error();
+    showToast(`Top-up removed for ${userName}`, 'success');
+    loadAdminWallets();
+  } catch(e) {
+    showToast('Failed to undo top-up.', 'error');
   }
 }
 

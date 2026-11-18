@@ -47,6 +47,14 @@ async function initDB() {
       paid_by TEXT,
       UNIQUE (user_name, week_start)
     );
+
+    CREATE TABLE IF NOT EXISTS wallet_topups (
+      id SERIAL PRIMARY KEY,
+      user_name TEXT NOT NULL,
+      amount NUMERIC(10,2) NOT NULL,
+      added_by TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
   `);
   console.log('☕ Database ready');
 }
@@ -106,14 +114,17 @@ app.post('/api/orders', async (req, res) => {
   const date = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // YYYY-MM-DD in IST
   const time = now.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true });
   const totalItems = items.reduce((sum, i) => sum + (i.qty || 0), 0);
-  const itemsJson = JSON.stringify(items);
+  // Store the price at order time so later price changes don't alter past deductions
+  const itemsJson = JSON.stringify(items.map(i => ({ ...i, price: srvItemPrice(i.id) })));
+  const clean = name.trim();
 
   try {
     const { rows } = await pool.query(
       'INSERT INTO orders (name, date, time, items, total_items) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-      [name.trim(), date, time, itemsJson, totalItems]
+      [clean, date, time, itemsJson, totalItems]
     );
-    res.json({ success: true, id: rows[0].id });
+    const wallet = clean.toLowerCase() === ADMIN_NAME ? null : (await computeWallets([clean]))[clean];
+    res.json({ success: true, id: rows[0].id, balance: wallet ? wallet.balance : null });
   } catch (e) {
     res.status(500).json({ error: 'DB error' });
   }
@@ -224,7 +235,7 @@ app.delete('/api/orders/:id', async (req, res) => {
   }
 });
 
-// ── Payment endpoints ────────────────────────────────────
+// ── Wallet endpoints ─────────────────────────────────────
 
 // Prices & snack IDs mirroring the frontend MENU
 const PRICES = {
@@ -235,13 +246,16 @@ const PRICES = {
   mc_boost: 30, mc_horlicks: 30, mc_badam: 30, mc_cookies: 15, mc_bajji: 15
 };
 const SNACK_IDS = new Set(['biscuits', 'peanuts', 'samosa', 'egg_puffs', 'paneer_puffs', 'masala_corn']);
+const DEFAULT_TOPUP = 400;
 
 function srvItemPrice(id) { return PRICES[id] || 0; }
+// Price stored on the order item wins; older orders fall back to the current price list
+function srvLinePrice(i) { return (Number.isFinite(i.price) ? i.price : srvItemPrice(i.id)) * i.qty; }
 function srvSnackTotal(items) {
-  return items.reduce((s, i) => SNACK_IDS.has(i.id) ? s + srvItemPrice(i.id) * i.qty : s, 0);
+  return items.reduce((s, i) => SNACK_IDS.has(i.id) ? s + srvLinePrice(i) : s, 0);
 }
-function srvNonSnackTotal(items) {
-  return items.reduce((s, i) => !SNACK_IDS.has(i.id) ? s + srvItemPrice(i.id) * i.qty : s, 0);
+function srvOrderTotal(items) {
+  return items.reduce((s, i) => s + srvLinePrice(i), 0);
 }
 function srvParseHour(timeStr) {
   const [timePart, period] = timeStr.toLowerCase().split(' ');
@@ -250,122 +264,146 @@ function srvParseHour(timeStr) {
   if (period === 'am' && h === 12) h = 0;
   return h;
 }
+function srvSession(timeStr) { return srvParseHour(timeStr) < 16 ? 'morning' : 'evening'; }
+function istDate(ts) { return new Date(ts).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); }
 
-// GET /api/payments/week/:weekStart — admin only, returns all users totals + payment status
-app.get('/api/payments/week/:weekStart', async (req, res) => {
-  if (!isAdminRequest(req)) return res.status(403).json({ error: 'Admin only' });
-  const { weekStart } = req.params;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart)) return res.status(400).json({ error: 'Invalid date' });
+// Admin's snack orders in a session are split equally among the non-admin users who ordered in it
+function sessionSnackShares(dayOrders) {
+  const shares = { morning: 0, evening: 0 };
+  for (const session of ['morning', 'evening']) {
+    const sessOrders = dayOrders.filter(o => srvSession(o.time) === session);
+    const snackPool = sessOrders.filter(o => o.name.toLowerCase() === ADMIN_NAME)
+      .reduce((s, o) => s + srvSnackTotal(o.items), 0);
+    const uCount = new Set(sessOrders.map(o => o.name).filter(n => n.toLowerCase() !== ADMIN_NAME)).size;
+    shares[session] = uCount > 0 ? Math.round((snackPool / uCount) / 0.5) * 0.5 : 0;
+  }
+  return shares;
+}
 
-  try {
-    const monday = new Date(weekStart + 'T00:00:00Z');
-    const dates = Array.from({ length: 5 }, (_, i) => {
-      const d = new Date(monday);
-      d.setUTCDate(monday.getUTCDate() + i);
-      return d.toISOString().split('T')[0];
+// Wallets start on the date of the very first top-up; earlier orders were settled under the old weekly payments
+async function walletStartDate() {
+  const { rows } = await pool.query('SELECT MIN(created_at) AS first FROM wallet_topups');
+  return rows[0].first ? istDate(rows[0].first) : null;
+}
+
+// Returns { [name]: { credited, spent, balance, ledger } } — ledger is newest first, each entry with running balance
+async function computeWallets(names) {
+  const result = {};
+  names.forEach(n => { result[n] = { credited: 0, spent: 0, balance: 0, ledger: [] }; });
+  if (names.length === 0) return result;
+
+  const startDate = await walletStartDate();
+  if (!startDate) return result;
+
+  const { rows: topups } = await pool.query(
+    'SELECT id, user_name, amount, added_by, created_at FROM wallet_topups WHERE user_name = ANY($1) ORDER BY created_at ASC',
+    [names]
+  );
+  const { rows: orderRows } = await pool.query(
+    'SELECT name, date, time, items FROM orders WHERE date >= $1 ORDER BY date ASC, created_at ASC',
+    [startDate]
+  );
+  const orders = orderRows.map(o => ({ ...o, items: JSON.parse(o.items) }));
+
+  const byDate = {};
+  orders.forEach(o => { (byDate[o.date] = byDate[o.date] || []).push(o); });
+  const sharesByDate = {};
+  for (const date in byDate) sharesByDate[date] = sessionSnackShares(byDate[date]);
+
+  for (const name of names) {
+    const entries = topups.filter(t => t.user_name === name).map(t => ({
+      type: 'topup', id: t.id, date: istDate(t.created_at), at: t.created_at,
+      amount: Number(t.amount), addedBy: t.added_by
+    }));
+
+    const userDays = {};
+    orders.filter(o => o.name === name).forEach(o => {
+      const day = userDays[o.date] = userDays[o.date] || { morning: [], evening: [] };
+      day[srvSession(o.time)].push(o);
     });
-    const weekEnd = dates[4];
-
-    const { rows: allOrders } = await pool.query(
-      'SELECT name, date, time, items FROM orders WHERE date >= $1 AND date <= $2',
-      [weekStart, weekEnd]
-    );
-    const parsed = allOrders.map(o => ({ ...o, items: JSON.parse(o.items) }));
-
-    // Only include users who ordered this week (excluding admin)
-    const weekUserNames = [...new Set(
-      parsed.filter(o => o.name.toLowerCase() !== ADMIN_NAME).map(o => o.name)
-    )].sort();
-    const userRows = weekUserNames.map(name => ({ name }));
-
-    // Snack share per date per session (morning/evening) — matches frontend Team Order view
-    const dateSnackShare = {};
-    for (const date of dates) {
-      const dayOrders = parsed.filter(o => o.date === date);
-      dateSnackShare[date] = { morning: 0, evening: 0 };
-      for (const session of ['morning', 'evening']) {
-        const isMorning = session === 'morning';
-        const sessOrders = dayOrders.filter(o => (srvParseHour(o.time) < 16) === isMorning);
-        const pool2 = sessOrders.filter(o => o.name.toLowerCase() === ADMIN_NAME)
-          .reduce((s, o) => s + srvSnackTotal(o.items), 0);
-        const uCount = [...new Set(sessOrders.map(o => o.name))]
-          .filter(n => n.toLowerCase() !== ADMIN_NAME).length;
-        dateSnackShare[date][session] = uCount > 0 ? Math.round((pool2 / uCount) / 0.5) * 0.5 : 0;
-      }
+    for (const date in userDays) {
+      const day = userDays[date];
+      const shares = sharesByDate[date];
+      const morning = day.morning.reduce((s, o) => s + srvOrderTotal(o.items), 0);
+      const evening = day.evening.reduce((s, o) => s + srvOrderTotal(o.items), 0);
+      const snack = (day.morning.length ? shares.morning : 0) + (day.evening.length ? shares.evening : 0);
+      entries.push({ type: 'day', date, morning, evening, snack, amount: morning + evening + snack });
     }
 
-    // Per-user totals
-    const { rows: payRows } = await pool.query(
-      'SELECT user_name, status, paid_at, paid_by FROM week_payments WHERE week_start = $1', [weekStart]
-    );
-    const payMap = {};
-    payRows.forEach(p => { payMap[p.user_name] = p; });
+    // Oldest first; on the same day a top-up is applied before that day's orders
+    const rank = e => (e.type === 'topup' ? 0 : 1);
+    entries.sort((a, b) => a.date.localeCompare(b.date) || rank(a) - rank(b));
+    const w = result[name];
+    for (const e of entries) {
+      if (e.type === 'topup') w.credited += e.amount;
+      else w.spent += e.amount;
+      e.balance = w.credited - w.spent;
+    }
+    w.balance = w.credited - w.spent;
+    w.ledger = entries.reverse();
+  }
+  return result;
+}
 
-    const result = userRows.map(({ name }) => {
-      const userOrders = parsed.filter(o => o.name === name);
-      let morning = 0, evening = 0, snack = 0;
-      for (const date of dates) {
-        const dayUser = userOrders.filter(o => o.date === date);
-        if (dayUser.length === 0) continue;
-        const sessShare = dateSnackShare[date] || { morning: 0, evening: 0 };
-        const hadMorning = dayUser.some(o => srvParseHour(o.time) < 16);
-        const hadEvening = dayUser.some(o => srvParseHour(o.time) >= 16);
-        if (hadMorning) snack += sessShare.morning;
-        if (hadEvening) snack += sessShare.evening;
-        dayUser.forEach(o => {
-          const total = srvNonSnackTotal(o.items) + srvSnackTotal(o.items);
-          if (srvParseHour(o.time) < 16) morning += total;
-          else evening += total;
-        });
-      }
-      return {
-        userName: name,
-        morning, evening, snack,
-        total: morning + evening + snack,
-        status: payMap[name]?.status || 'unpaid',
-        paidAt: payMap[name]?.paid_at || null,
-        paidBy: payMap[name]?.paid_by || null
-      };
-    });
-
-    res.json({ weekStart, weekEnd, users: result });
+// GET /api/wallet/:name — balance and ledger for one user
+app.get('/api/wallet/:name', async (req, res) => {
+  const name = req.params.name;
+  try {
+    const w = (await computeWallets([name]))[name];
+    res.json({ userName: name, credited: w.credited, spent: w.spent, balance: w.balance, ledger: w.ledger.slice(0, 60) });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'DB error' });
   }
 });
 
-// POST /api/payments/mark-paid — admin only
-app.post('/api/payments/mark-paid', async (req, res) => {
+// GET /api/wallets — admin only, balances for every associate
+app.get('/api/wallets', async (req, res) => {
   if (!isAdminRequest(req)) return res.status(403).json({ error: 'Admin only' });
-  const { userName, weekStart } = req.body;
-  if (!userName || !weekStart) return res.status(400).json({ error: 'userName and weekStart required' });
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart)) return res.status(400).json({ error: 'Invalid date' });
   try {
-    await pool.query(
-      `INSERT INTO week_payments (user_name, week_start, status, paid_at, paid_by)
-       VALUES ($1, $2, 'paid', NOW(), $3)
-       ON CONFLICT (user_name, week_start)
-       DO UPDATE SET status = 'paid', paid_at = NOW(), paid_by = $3`,
-      [userName, weekStart, req.headers['x-user-name']]
-    );
-    res.json({ success: true });
+    const { rows } = await pool.query('SELECT name FROM users ORDER BY name ASC');
+    const names = rows.map(r => r.name).filter(n => n.toLowerCase() !== ADMIN_NAME);
+    const wallets = await computeWallets(names);
+    res.json({
+      defaultTopup: DEFAULT_TOPUP,
+      users: names.map(name => {
+        const w = wallets[name];
+        const lastTopup = w.ledger.find(e => e.type === 'topup') || null;
+        return { userName: name, credited: w.credited, spent: w.spent, balance: w.balance, lastTopup };
+      })
+    });
   } catch (e) {
+    console.error(e);
     res.status(500).json({ error: 'DB error' });
   }
 });
 
-// GET /api/payments/status/:userName/:weekStart — public
-app.get('/api/payments/status/:userName/:weekStart', async (req, res) => {
-  const { userName, weekStart } = req.params;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart)) return res.status(400).json({ error: 'Invalid date' });
+// POST /api/wallet/topup — admin only, credit an associate's wallet
+app.post('/api/wallet/topup', async (req, res) => {
+  if (!isAdminRequest(req)) return res.status(403).json({ error: 'Admin only' });
+  const { userName } = req.body;
+  const amount = Number(req.body.amount ?? DEFAULT_TOPUP);
+  if (!userName) return res.status(400).json({ error: 'userName required' });
+  if (!Number.isFinite(amount) || amount <= 0 || amount > 10000) return res.status(400).json({ error: 'Invalid amount' });
   try {
     const { rows } = await pool.query(
-      'SELECT status, paid_at, paid_by FROM week_payments WHERE user_name = $1 AND week_start = $2',
-      [userName, weekStart]
+      'INSERT INTO wallet_topups (user_name, amount, added_by) VALUES ($1, $2, $3) RETURNING id',
+      [userName, amount, req.headers['x-user-name']]
     );
-    if (rows.length === 0) return res.json({ status: 'unpaid', paidAt: null });
-    res.json({ status: rows[0].status, paidAt: rows[0].paid_at, paidBy: rows[0].paid_by });
+    const w = (await computeWallets([userName]))[userName];
+    res.json({ success: true, id: rows[0].id, balance: w.balance });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+// DELETE /api/wallet/topup/:id — admin only, undo a mistaken top-up
+app.delete('/api/wallet/topup/:id', async (req, res) => {
+  if (!isAdminRequest(req)) return res.status(403).json({ error: 'Admin only' });
+  try {
+    await pool.query('DELETE FROM wallet_topups WHERE id = $1', [req.params.id]);
+    res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: 'DB error' });
   }

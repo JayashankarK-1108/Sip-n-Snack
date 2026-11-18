@@ -1,4 +1,4 @@
-const CACHE = 'sip-n-snack-v1';
+const CACHE = 'sip-n-snack-v2';
 const SHELL = ['/', '/manifest.json', '/icon.svg'];
 
 // Install: cache the app shell
