@@ -608,7 +608,6 @@
     .week-summary-row.total span.negative { color: #e57368; }
     .wallet-balance-big { font-family: 'Playfair Display', serif; font-size: 2.2rem; font-weight: 700; color: var(--gold); margin: 0.25rem 0 0.75rem; }
     .wallet-balance-big.negative { color: #e57368; }
-    .wallet-low-note { font-size: 0.8rem; color: #e57368; margin-bottom: 0.75rem; }
     .wallet-section-label { font-weight: 700; font-size: 0.85rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 1.5rem 0 0.75rem; }
     .payment-day-total.credit { color: var(--sage); }
     .payment-day-balance { font-size: 0.75rem; color: var(--muted); font-weight: 400; margin-top: 0.15rem; }
@@ -627,16 +626,6 @@
     }
     .btn-undo-topup { background: none; border: none; color: var(--muted); font-size: 0.75rem; text-decoration: underline; cursor: pointer; padding: 0; margin-left: 0.3rem; }
     .payment-user-total.negative { color: #c0392b; }
-
-    .wallet-actions { margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.12); }
-    .btn-make-payment {
-      flex: 1; background: #c0392b; color: #fff; border: none;
-      padding: 0.65rem 1rem; border-radius: 10px;
-      font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 600;
-      cursor: pointer; transition: all 0.2s;
-      display: block; text-align: center; text-decoration: none;
-    }
-    .btn-make-payment:hover { background: #a93226; }
 
     /* ── Admin wallet view ── */
     .admin-payments-summary {
@@ -1513,8 +1502,6 @@ async function loadMyOrders() {
 }
 
 // ── Wallet ──────────────────────────────────────────
-const LOW_BALANCE = 50;
-
 function fmtDate(d) {
   return new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
@@ -1551,7 +1538,7 @@ async function loadUserWallet() {
   try {
     const res = await fetch(`${API}/api/wallet/${encodeURIComponent(currentUser)}`);
     if (!res.ok) throw new Error();
-    const { credited, spent, balance, ledger } = await res.json();
+    const { spent, balance, ledger } = await res.json();
     setWalletBar(balance);
 
     const entries = ledger.map(e => {
@@ -1586,23 +1573,11 @@ async function loadUserWallet() {
         </div>`;
     }).join('');
 
-    const lowNote = balance < 0
-      ? `<div class="wallet-low-note">Your wallet is overdrawn. Please top up ₹400 with Admin.</div>`
-      : balance < LOW_BALANCE
-        ? `<div class="wallet-low-note">Running low. Time to top up soon.</div>`
-        : '';
-
     content.innerHTML = `
       <div class="week-summary-card" style="margin-top:0;">
         <h3>👛 Remaining Balance</h3>
         <div class="wallet-balance-big ${balance < 0 ? 'negative' : ''}">${fmtMoney(balance)}</div>
-        ${lowNote}
-        <div class="week-summary-row"><span>💵 Total topped up</span><span>${fmtMoney(credited)}</span></div>
-        <div class="week-summary-row"><span>☕ Total spent</span><span>${fmtMoney(spent)}</span></div>
-        ${adminUpi ? `
-        <div class="wallet-actions">
-          <a href="tez://upi/pay" class="btn-make-payment">💳 Top up via GPay</a>
-        </div>` : ''}
+        <div class="week-summary-row"><span>☕ Total spent till date</span><span>${fmtMoney(spent)}</span></div>
       </div>
       <div class="wallet-section-label">History</div>
       ${entries || `<div class="no-orders"><div class="icon">👛</div><p>No top-ups or orders yet.</p></div>`}`;

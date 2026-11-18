@@ -38,16 +38,6 @@ async function initDB() {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
-    CREATE TABLE IF NOT EXISTS week_payments (
-      id SERIAL PRIMARY KEY,
-      user_name TEXT NOT NULL,
-      week_start TEXT NOT NULL,
-      status TEXT NOT NULL DEFAULT 'unpaid',
-      paid_at TIMESTAMP,
-      paid_by TEXT,
-      UNIQUE (user_name, week_start)
-    );
-
     CREATE TABLE IF NOT EXISTS wallet_topups (
       id SERIAL PRIMARY KEY,
       user_name TEXT NOT NULL,
